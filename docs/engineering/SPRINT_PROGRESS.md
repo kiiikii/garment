@@ -3,8 +3,8 @@
 ## Project Overview
 - **System**: Garment ERP Core
 - **Architecture**: Modular Monolith, Headless Go ERP Core, REST API
-- **Current Sprint**: Sprint 1 — HTTP and REST Fundamentals, First Business Endpoint
-- **Current Position**: Challenge 1.3 COMPLETED → Sprint 1 COMPLETED → Sprint 2 PENDING
+- **Current Sprint**: Sprint 2 — PostgreSQL Setup, Migrations, Customer / Order Tables, Repository Foundation
+- **Current Position**: Challenge 2.1 COMPLETED → Challenge 2.2 PENDING
 
 ---
 
@@ -74,5 +74,29 @@
 
 ---
 
-## Sprint 2: PostgreSQL Setup, Migrations, Customer / Order Tables, Repository Foundation (PENDING)
+## Sprint 2: PostgreSQL Setup, Migrations, Customer / Order Tables, Repository Foundation
+
+### Challenge 2.1: PostgreSQL Connection & Configuration (COMPLETED)
+- **Status**: `COMPLETED`
+- **Implementation Summary**:
+  - Added PostgreSQL driver dependency `github.com/jackc/pgx/v5` (`pgx/stdlib`) registering driver name `"pgx"`.
+  - Added `DATABASE_URL` environment variable support and placeholder in `.env.example`.
+  - Initialized database handle using `sql.Open("pgx", databaseURL)` in `main()`.
+  - Validated connection at startup via `db.PingContext(pingCtx)` with a 5-second timeout context.
+  - Handled startup ping error via log and early return, preserving deferred resource cleanup.
+  - Registered `defer db.Close()` before HTTP server definition to guarantee HTTP shutdown drains active connections before the database connection closes.
+  - Updated `buildRouter` signature to accept `*sql.DB` for dependency injection (`func buildRouter(db *sql.DB) *http.ServeMux`).
+  - Updated all test calls in `main_test.go` to pass `nil` to `buildRouter(nil)`.
+- **Verification & Tests**:
+  - `gofmt -l .` — 0 unformatted files.
+  - `go vet ./...` — Clean, 0 issues.
+  - `go build ./...` — Clean build.
+  - `go test -count=1 -v ./...` — All 6 tests passing.
+- **Known Technical Debt**:
+  - `log.Fatalf` in the `ListenAndServe` background goroutine is retained as minor technical debt.
+- **Milestone Commit**: `7097f6d`
+
+---
+
+### Challenge 2.2: Database Migration Strategy & Schema Setup
 - **Status**: `PENDING`
