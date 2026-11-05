@@ -4,7 +4,7 @@
 - **System**: Garment ERP Core
 - **Architecture**: Modular Monolith, Headless Go ERP Core, REST API
 - **Current Sprint**: Sprint 1 — HTTP and REST Fundamentals, First Business Endpoint
-- **Current Position**: Challenge 1.1 COMPLETED → Challenge 1.2 PENDING
+- **Current Position**: Challenge 1.2 COMPLETED → Challenge 1.3 PENDING
 
 ---
 
@@ -38,18 +38,37 @@
     - `TestCreateOrder_MalformedJSON` (400 Bad Request, code=MALFORMED_JSON)
     - `TestCreateOrder_ValidationError` (422 Unprocessable Entity, code=VALIDATION_ERROR)
 - **Known Observations**:
-  - `TestSystemEndpoint` (`GET /health`) was replaced during `main_test.go` updates; needs restoration to maintain health check regression coverage.
   - Supported sizes are currently checked against S, M, L, XL; PRD notes custom sizes remain `UNDECIDED`.
 
 ---
 
-### Challenge 1.2: Path Parameters, In-Memory Storage & Order Retrieval (NEXT)
+### Challenge 1.2: Path Parameters, In-Memory Storage & Order Retrieval (COMPLETED)
+- **Status**: `COMPLETED`
+- **Implementation Summary**:
+  - Thread-safe in-memory order storage using `InMemoryOrderStore` with `sync.RWMutex`.
+  - Sequential order ID generation (`ord_%d` format).
+  - `POST /api/v1/orders` persists orders in the store with generated IDs.
+  - `GET /api/v1/orders/{id}` retrieves single orders via Go 1.22+ `r.PathValue("id")`.
+  - `GET /api/v1/orders` retrieves the collection of all stored orders.
+  - 404 NOT_FOUND handling with code `"NOT_FOUND"` for non-existent IDs.
+  - Automated test coverage: 6/6 tests passing in `main_test.go`, including restored `/health` check and matching order field assertions.
+- **Verification & Tests**:
+  - `gofmt -l .` — 0 unformatted files.
+  - `go vet ./...` — Clean, 0 issues.
+  - `go test -count=1 -v ./...` — 6/6 tests passing:
+    - `TestHealthCheck` (200 OK, Content-Type: application/json, status: "ok")
+    - `TestCreateOrder_Success` (201 Created, success: true)
+    - `TestCreateOrder_MalformedJSON` (400 Bad Request, code: MALFORMED_JSON)
+    - `TestCreateOrder_ValidationError` (422 Unprocessable Entity, code: VALIDATION_ERROR)
+    - `TestGetByID` (200 OK matching order data, 404 Not Found code: NOT_FOUND)
+    - `TestGetAllOrders` (200 OK array length and matching elements)
+
+---
+
+### Challenge 1.3: Sprint 1 Milestone Review & Git Commit (PENDING)
 - **Status**: `PENDING`
 - **Scope**:
-  - Introduce thread-safe in-memory order store (map + sync.RWMutex) in `main.go`.
-  - Assign generated sequential or UUID-like IDs to created orders on `POST /api/v1/orders`.
-  - Implement `GET /api/v1/orders/{id}` using Go 1.22+ `r.PathValue("id")`.
-  - Handle `404 Not Found` with code `"NOT_FOUND"` for unknown order IDs.
-  - Implement `GET /api/v1/orders` returning all orders in `data`.
-  - Add tests covering `GET /api/v1/orders`, `GET /api/v1/orders/{id}` success (200), and not found (404), while restoring `TestSystemEndpoint`.
-
+  - Review all Sprint 1 changes across `apps/api/cmd/api/main.go` and `apps/api/cmd/api/main_test.go`.
+  - Ensure working tree is clean and all tests pass.
+  - Record meaningful milestone commit for Sprint 1 per `docs/engineering/GIT_WORKFLOW.md`.
+  - Prepare technical baseline for Sprint 2 (PostgreSQL setup, migrations, Customer / Order tables, repository foundation).
