@@ -2,20 +2,21 @@ package main
 
 import (
 	"context"
+	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
+	"net/http"
+	"os"
 	"os/signal"
 	"strings"
 	"sync"
 	"syscall"
 	"time"
 
+	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/joho/godotenv"
-
-	"encoding/json"
-	"log"
-	"net/http"
-	"os"
 )
 
 type HealthResponse struct {
@@ -176,7 +177,7 @@ func writeError(w http.ResponseWriter, status int, code, message string, details
 	json.NewEncoder(w).Encode(errPayload)
 }
 
-func buildRouter() *http.ServeMux {
+func buildRouter(db *sql.DB) *http.ServeMux {
 	store := NewInMemoryOrderStore()
 
 	router := http.NewServeMux()
@@ -242,9 +243,36 @@ func main() {
 		port = "8080"
 	}
 
-	healthServer := &http.Server{
+	databaseURL := os.Getenv("DATABASE_URL")
+	if databaseURL == "" {
+		log.Println("DATABASE_URL is not set")
+		return
+	}
+
+	db, err := sql.Open("pgx", databaseURL)
+	if err != nil {
+		log.Printf("failed to open database: %v", err)
+		return
+	}
+	// Correction 2: db.Close deferred before HTTP shutdown so it runs after
+	// the server drains all active connections.
+	defer db.Close()
+
+	// Correction 1: PingContext forces a real connection, catching
+	// misconfigured DSNs or unreachable servers at startup.
+	pingCtx, cancelPing := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancelPing()
+	if err := db.PingContext(pingCtx); err != nil {
+		// Correction 3: log + return instead of log.Fatal so deferred
+		// db.Close still runs during stack unwind.
+		log.Printf("cannot connect to database: %v", err)
+		return
+	}
+	log.Println("Database connection established.")
+
+	server := &http.Server{
 		Addr:    ":" + port,
-		Handler: buildRouter(),
+		Handler: buildRouter(db),
 	}
 
 	shutdownSignalCtx, stopSignal := signal.NotifyContext(
@@ -252,12 +280,11 @@ func main() {
 		os.Interrupt,
 		syscall.SIGTERM,
 	)
-
 	defer stopSignal()
 
 	go func() {
-		log.Printf("pipeline up on %s", healthServer.Addr)
-		err := healthServer.ListenAndServe()
+		log.Printf("pipeline up on %s", server.Addr)
+		err := server.ListenAndServe()
 		if err != nil && !errors.Is(err, http.ErrServerClosed) {
 			log.Fatalf("Fatal Network crash: %v", err)
 		}
@@ -270,9 +297,10 @@ func main() {
 	timeoutCtx, cancelTimeout := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancelTimeout()
 
-	if err := healthServer.Shutdown(timeoutCtx); err != nil {
+	if err := server.Shutdown(timeoutCtx); err != nil {
 		log.Printf("Server was force to kill active connections: %v", err)
 	}
 
 	log.Println("Server has cleanly exited. Goodbye.")
+	// db.Close() runs here via defer — after HTTP shutdown completes.
 }

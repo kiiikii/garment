@@ -10,7 +10,7 @@ import (
 )
 
 func TestHealthCheck(t *testing.T) {
-	router := buildRouter()
+	router := buildRouter(nil)
 
 	req := httptest.NewRequest("GET", "/health", nil)
 	recorder := httptest.NewRecorder()
@@ -38,7 +38,7 @@ func TestHealthCheck(t *testing.T) {
 }
 
 func TestCreateOrder_Success(t *testing.T) {
-	router := buildRouter()
+	router := buildRouter(nil)
 
 	inputData := map[string]any{
 		"customer_name":    "John Doe",
@@ -73,7 +73,7 @@ func TestCreateOrder_Success(t *testing.T) {
 }
 
 func TestCreateOrder_MalformedJSON(t *testing.T) {
-	router := buildRouter()
+	router := buildRouter(nil)
 
 	badJSON := []byte(`{"customer_name": "Broken JSON`)
 
@@ -105,7 +105,7 @@ func TestCreateOrder_MalformedJSON(t *testing.T) {
 }
 
 func TestCreateOrder_ValidationError(t *testing.T) {
-	router := buildRouter()
+	router := buildRouter(nil)
 
 	invalidData := map[string]any{
 		"customer_name":    "Jane Doe",
@@ -144,7 +144,7 @@ func TestCreateOrder_ValidationError(t *testing.T) {
 }
 
 func TestGetByID(t *testing.T) {
-	router := buildRouter()
+	router := buildRouter(nil)
 
 	inputData := map[string]any{
 		"customer_name":    "Alice",
@@ -220,7 +220,7 @@ func TestGetByID(t *testing.T) {
 }
 
 func TestGetAllOrders(t *testing.T) {
-	router := buildRouter()
+	router := buildRouter(nil)
 
 	order1 := map[string]any{
 		"customer_name": "Company A", "customer_phone": "111", "customer_address": "Addr A",
