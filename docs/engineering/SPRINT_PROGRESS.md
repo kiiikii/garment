@@ -4,7 +4,7 @@
 - **System**: Garment ERP Core
 - **Architecture**: Modular Monolith, Headless Go ERP Core, REST API
 - **Current Sprint**: Sprint 1 — HTTP and REST Fundamentals, First Business Endpoint
-- **Current Position**: Challenge 1.2 COMPLETED → Challenge 1.3 PENDING
+- **Current Position**: Challenge 1.3 COMPLETED → Sprint 1 COMPLETED → Sprint 2 PENDING
 
 ---
 
@@ -65,10 +65,14 @@
 
 ---
 
-### Challenge 1.3: Sprint 1 Milestone Review & Git Commit (PENDING)
+### Challenge 1.3: Sprint 1 Milestone Review & Git Commit (COMPLETED)
+- **Status**: `COMPLETED`
+- **Summary**:
+  - Verified working tree clean, all 6 tests passing, `gofmt` and `go vet` clean.
+  - Sprint 1 source committed in `a937742`.
+  - Sprint progress document committed in `b22a734`.
+
+---
+
+## Sprint 2: PostgreSQL Setup, Migrations, Customer / Order Tables, Repository Foundation (PENDING)
 - **Status**: `PENDING`
-- **Scope**:
-  - Review all Sprint 1 changes across `apps/api/cmd/api/main.go` and `apps/api/cmd/api/main_test.go`.
-  - Ensure working tree is clean and all tests pass.
-  - Record meaningful milestone commit for Sprint 1 per `docs/engineering/GIT_WORKFLOW.md`.
-  - Prepare technical baseline for Sprint 2 (PostgreSQL setup, migrations, Customer / Order tables, repository foundation).
