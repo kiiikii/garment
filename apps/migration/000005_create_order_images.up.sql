@@ -1,0 +1,9 @@
+CREATE TABLE IF NOT EXISTS order_images (
+  id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  order_id BIGINT NOT NULL,
+  file_path TEXT NOT NULL,
+  sort_order INTEGER NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+  CONSTRAINT fk_order_images_order_id FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE
+);

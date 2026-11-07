@@ -4,7 +4,7 @@
 - **System**: Garment ERP Core
 - **Architecture**: Modular Monolith, Headless Go ERP Core, REST API
 - **Current Sprint**: Sprint 2 — PostgreSQL Setup, Migrations, Customer / Order Tables, Repository Foundation
-- **Current Position**: Challenge 2.1 COMPLETED → Challenge 2.2 PENDING
+- **Current Position**: Challenge 2.2 COMPLETED → Challenge 2.3 PENDING
 
 ---
 
@@ -98,5 +98,24 @@
 
 ---
 
-### Challenge 2.2: Database Migration Strategy & Schema Setup
+### Challenge 2.2: Database Migration Strategy & Schema Setup (COMPLETED)
+- **Status**: `COMPLETED`
+- **Implementation Summary**:
+  - Adopted and configured `golang-migrate` CLI.
+  - Authored forward and rollback migration pairs (`.up.sql` and `.down.sql`) in `apps/migration/`.
+  - Created 6 foundational relational tables:
+    - `customers`: identity PK, customer info, timestamps.
+    - `sizes`: name with unique constraint, type check (`STANDARD`, `CUSTOM`), active flag, and initial seeds (S, M, L, XL).
+    - `orders`: references `customers` (`ON DELETE RESTRICT`), production type check (`CMT`, `FOB`), status check (`ACTIVE`, `CANCELLED`, `COMPLETED`), indexed `customer_id`.
+    - `order_sizes`: composite relational junction with positive quantity check, composite unique constraint `(order_id, size_id)`, and cascading deletion on order.
+    - `order_images`: order reference image metadata with cascading deletion.
+    - `order_status_history`: state transitions tracking `from_status` and `to_status` checks, indexed `order_id`.
+  - Executed and validated migrations against Neon PostgreSQL using `DATABASE_URL`.
+  - Diagnosed and resolved migration dirty state handling during schema iteration.
+- **Verification**:
+  - All 6 tables, indexes, constraints, and initial seed records verified in PostgreSQL.
+
+---
+
+### Challenge 2.3: Repository Pattern Foundation & Database Order Persistence
 - **Status**: `PENDING`
