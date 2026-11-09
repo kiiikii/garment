@@ -27,7 +27,13 @@
 ---
 
 ### Milestone 1: Laravel ERP Core Bootstrap & Health Foundation (Sprint 0)
-- **Status**: `PENDING`
+- **Status**: `IN PROGRESS`
+- **Progress**:
+  - **Task 1.1 (Laravel Application Scaffolding)**: `COMPLETED` — Scaffolded Laravel 13.40.0 on PHP 8.5.12 in `apps/api/`.
+  - **Task 1.2 (PostgreSQL Connection Configuration)**: `COMPLETED` — Configured `pgsql` driver targeting PostgreSQL (`teemant_konveksi` on Neon with SSL); verified connectivity via `migrate:status`.
+  - **Task 1.3 (Liveness Endpoint GET /health)**: `COMPLETED` — Registered `GET /health` in `routes/web.php` returning HTTP 200 `{"status": "ok"}` per API_CONTRACTS.md Section 4.1.
+  - **Task 1.4 (API Error Handling Baseline)**: `COMPLETED` — Configured `/api/v1` prefix and JSON exception rendering in `bootstrap/app.php` per API_CONTRACTS.md and ERROR_HANDLING.md.
+  - **Task 1.5 (Automated Test & Verification)**: `PENDING`
 - **Scope**:
   - Initialize Laravel 13.x in `apps/api/` using PHP 8.5.
   - Configure PostgreSQL database connectivity profile.
