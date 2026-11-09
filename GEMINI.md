@@ -61,7 +61,7 @@ Combine skills when a task crosses multiple responsibilities.
 
 ## 5. Backend-First Development
 
-The Go ERP Core is the business authority.
+The Laravel ERP Core is the business authority.
 
 The initial development focus is the backend under `apps/api/`.
 

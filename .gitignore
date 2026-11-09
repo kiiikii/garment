@@ -1,4 +1,30 @@
-# Binaries and build artifacts
+# Environment and secrets
+.env
+.env.backup
+.env.production
+.env.local
+*.env
+
+# PHP & Composer / Laravel
+/vendor/
+/apps/api/vendor/
+composer.phar
+.phpunit.result.cache
+.phpstan.cache
+.phpunit.cache
+Homestead.json
+Homestead.yaml
+npm-debug.log
+yarn-error.log
+
+# Node & Frontend (Vite)
+node_modules/
+/apps/web/node_modules/
+dist/
+/apps/web/dist/
+.vite/
+
+# Legacy Go Binaries and build artifacts
 /bin/
 apps/api/bin/
 apps/api/api
@@ -10,11 +36,6 @@ apps/api/api
 *.test
 *.out
 
-# Environment and secrets
-.env
-.env.local
-
 # OS files
 .DS_Store
 Thumbs.db
-

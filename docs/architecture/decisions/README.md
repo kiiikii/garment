@@ -124,3 +124,4 @@ when applicable.
 |---|---|---|---|---|
 | 0001 | Frontend stack: React + Vite + TypeScript + shadcn/ui | Accepted | See ADR | SYSTEM_ARCHITECTURE.md, APPLICATION_ARCHITECTURE.md |
 | 0002 | Theme: shadcn/ui OKLCH tokens | Accepted | See ADR | APPLICATION_ARCHITECTURE.md |
+| 0003 | Backend architecture: Laravel 13.x (PHP 8.5.x) | Accepted | See ADR | SYSTEM_ARCHITECTURE.md, APPLICATION_ARCHITECTURE.md, PRD.md |

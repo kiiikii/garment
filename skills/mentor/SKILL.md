@@ -96,10 +96,11 @@ Use only the sections relevant to the challenge. Small challenges must remain co
 
 Backend verification may include:
 
-- `gofmt -l .`
-- `go vet ./...`
-- `go build ./...`
-- `go test ./...`
+- `php -l path/to/file.php` (PHP syntax check)
+- `php artisan test` (Laravel test suite, when Laravel application exists)
+- `vendor/bin/pint --test` (only when Laravel Pint is configured)
+- `vendor/bin/phpstan analyse` (only when PHPStan is configured)
+- `php artisan route:list` (route inspection)
 
 Frontend verification must follow the scripts actually defined in `apps/web/package.json`.
 
