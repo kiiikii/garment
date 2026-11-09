@@ -1,47 +1,52 @@
 # User Roles
 
-Status: PARTIALLY CONFIRMED
+**Status:** PARTIALLY CONFIRMED
 
-The PRD v0.4 identifies the following internal role identifiers
-for Phase 1:
+PRD v1.0 defines four internal role identifiers for Phase 1:
 
 - `OWNER`
 - `ADMIN`
 - `PPIC`
 - `PRODUCTION_STAFF`
 
-These role identifiers are confirmed for Phase 1.
+These identifiers are confirmed.
 
-Detailed responsibilities, access boundaries, and permissions
-must be validated against actual business operations.
+Responsibilities and access boundaries are defined below
+only where supported by confirmed business decisions.
 
-Do not invent additional roles or permissions.
+A role must not automatically receive every permission associated
+with its general business responsibilities.
 
-## 1. Confirmed Role Identifiers
+---
 
-| Role             | General Responsibility                                                                                                                                               |
-| ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| OWNER            | Management visibility, business oversight, and approval responsibilities explicitly assigned by approved business rules.                                             |
-| ADMIN            | Customer and order administration, LoA administration, and payment recording.                                                                                        |
-| PPIC             | Production readiness, Waiting / On Hold follow-up, Functional Layout preparation, production progress updates, Delay Reports, and Production Issue Report follow-up. |
-| PRODUCTION_STAFF | Views relevant departmental work and submits Production Issue Reports.                                                                                               |
+## 1. Confirmed Roles and Responsibilities
 
-These descriptions summarize confirmed Phase 1 responsibilities.
+| Role | Responsibilities |
+|---|---|
+| OWNER | Management oversight, approval of Order Change Requests, approval of Payment Record Corrections, business monitoring, and access to order-status audit history. |
+| ADMIN | Customer and Order administration, sampling and LoA administration, payment recording, and creation of Order Change Requests. |
+| PPIC | Production Readiness and Waiting follow-up, Functional Layout preparation, production progress submission, Delay Report management, Production Issue Report follow-up, operational monitoring, and fulfillment confirmation. |
+| PRODUCTION_STAFF | Views relevant in-progress work within their department and creates Production Issue Reports. |
 
-They are not a complete permission matrix.
+Important distinctions:
 
-A responsibility does not automatically grant permission
-to perform every action related to that responsibility.
+1. Administrative responsibility does not automatically grant approval authority.
+2. ADMIN may administer LoA-related information, but LoA approval authority remains UNDECIDED.
+3. Sampling execution and Sample / Look Approval authority remain UNDECIDED.
+4. PPIC confirms fulfillment completion, but detailed physical execution responsibilities remain UNDECIDED.
+5. These responsibilities do not constitute a complete permission matrix.
 
-## 2. Candidate Responsibility Areas
+## 2. Business Responsibility Areas
 
-The following are business responsibility areas,
-not additional confirmed system roles.
+The following are operational areas, not additional system roles:
 
 - Order intake / sales
+- Customer administration
 - Sampling
 - Sample / Look Approval
 - LoA administration and authorization
+- Payment recording
+- Payment correction approval
 - PPIC
 - Production
 - Packing
@@ -50,87 +55,147 @@ not additional confirmed system roles.
 
 One person may perform multiple business responsibilities.
 
-A responsibility area does not automatically require
-a separate system role.
+Business positions and operational responsibilities do not
+automatically require separate system roles.
 
-A business position or job title does not automatically
-correspond to a system role.
+Additional system roles must not be introduced without
+explicit business confirmation.
 
 ## 3. Confirmed Access Boundaries
 
-The following boundaries are explicitly established
-in PRD v0.4.
+The following table records confirmed Phase 1 access boundaries.
 
-| Feature                           | Confirmed Access Boundary                                                                                                        |
-| --------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| Customer and Order Administration | Admin manages customer and order records.                                                                                        |
-| Order Change Request              | Admin creates requests; Owner approves or rejects them.                                                                          |
-| Payment Recording                 | Admin records payments actually received.                                                                                        |
-| Payment Correction                | Owner approves or rejects payment-record corrections.                                                                            |
-| Production Readiness              | PPIC evaluates and manages readiness follow-up.                                                                                  |
-| Functional Layout                 | PPIC prepares the layout.                                                                                                        |
-| Production Progress               | PPIC submits production progress updates.                                                                                        |
-| Delay Report                      | PPIC creates and manages Delay Reports.                                                                                          |
-| Production Issue Report           | Production Staff creates and views their own reports; PPIC manages all reports; Owner has read-only access; Admin has no access. |
-| Order Status Audit History        | Owner has read-only access.                                                                                                      |
-| Production Staff Work Visibility  | Staff can view relevant orders currently in progress within their department.                                                    |
+| Feature | Access Boundary |
+|---|---|
+| Owner Dashboard | OWNER only. |
+| Customer and Order Administration | ADMIN manages customer and order records. |
+| Payment Recording | ADMIN records payments actually received. |
+| Payment Record Correction | OWNER approves or rejects correction requests. |
+| Order Change Request | ADMIN creates requests; OWNER approves or rejects them. |
+| Production Readiness | PPIC evaluates readiness and manages Waiting follow-up. |
+| Functional Layout | PPIC prepares the production layout. |
+| Production Progress | PPIC submits percentage progress updates. PRODUCTION_STAFF cannot submit percentage progress. |
+| Delay Report | PPIC creates and manages Delay Reports. |
+| Production Issue Report | PRODUCTION_STAFF creates and views their own reports; PPIC manages all reports; OWNER has read-only access; ADMIN has no access. |
+| Fulfillment | PPIC is responsible for confirming fulfillment completion. |
+| Order Status Audit History | OWNER has read-only access. |
+| Production Work Visibility | PRODUCTION_STAFF views relevant IN_PROGRESS orders within their department, subject to approved assignment and department rules. |
 
-These boundaries must not be interpreted as a complete
-authorization specification.
+### 3.1 Production Issue Report Access
 
-## 4. Open Decisions
+The confirmed access matrix is:
 
-| Item                                                    | Status              |
-| ------------------------------------------------------- | ------------------- |
-| Phase 1 role identifiers                                | CONFIRMED           |
-| General responsibilities per role                       | PARTIALLY CONFIRMED |
-| Complete permission matrix                              | UNDECIDED           |
-| Data visibility and department-level restrictions       | UNDECIDED           |
-| Who may approve Sample / Look                           | UNKNOWN             |
-| Who may approve LoA                                     | UNKNOWN             |
-| Who may put an order on hold / resume it                | UNDECIDED           |
-| Who may record target / actual quantities               | UNDECIDED           |
-| Who confirms Packing completion                         | UNDECIDED           |
-| Who confirms Delivery / Customer Pickup                 | UNDECIDED           |
-| Additional notification recipients and permissions      | UNDECIDED           |
-| Audit log access beyond explicitly confirmed boundaries | UNDECIDED           |
+| Capability | OWNER | ADMIN | PPIC | PRODUCTION_STAFF |
+|---|---|---|---|---|
+| View all reports | Read-only | No | Yes | No |
+| Create reports | No | No | No | Yes |
+| Manage all reports | No | No | Yes | No |
+| View own reports | No | No | All reports | Yes |
+| Update report status | No | No | Yes | No |
+| Resolve reports | No | No | Yes | No |
+
+Additional constraints:
+
+1. OWNER has read-only access to all Production Issue Reports.
+2. ADMIN has no Production Issue Report access in Phase 1.
+3. PPIC can view and manage all Production Issue Reports.
+4. PRODUCTION_STAFF can only view reports submitted by themselves.
+5. PPIC must provide a resolution note before setting a report to RESOLVED.
+6. Production Staff cannot manage report status or resolution.
+
+### 3.2 Production Staff Work Visibility
+
+Production Staff may access:
+
+- Orders currently IN_PROGRESS within the relevant department.
+- Relevant product details.
+- Relevant Functional Layout information.
+- Target completion information.
+- Work instructions.
+- Production Issue Report creation.
+- Their own Production Issue Reports.
+
+Access is subject to approved order assignment and department rules.
+
+Staff assignment and department-level visibility details remain UNDECIDED.
+
+## 4. Unconfirmed Decisions
+
+The following permissions and responsibilities must remain unresolved
+until explicitly approved.
+
+| Item | Status |
+|---|---|
+| Complete permission matrix | UNDECIDED |
+| Department-level data visibility rules | UNDECIDED |
+| Sampling execution responsibility | UNDECIDED |
+| Sample / Look Approval authority | UNDECIDED |
+| LoA Approval authority | UNDECIDED |
+| Order Hold / Resume authority | UNDECIDED |
+| Future target and actual production quantity recording permissions | UNDECIDED |
+| Detailed Packing and Delivery execution permissions | UNDECIDED |
+| Detailed Packing and Delivery confirmation permissions | UNDECIDED |
+| Additional notification recipients and access | UNDECIDED |
+| Audit log access beyond confirmed boundaries | UNDECIDED |
+| Production Staff assignment rules | UNDECIDED |
+| Additional role responsibilities | UNDECIDED |
+
+Unconfirmed permissions must not be implemented based on assumptions.
 
 ## 5. Authorization Principles
 
-- Authentication identifies who the user is.
-- Authorization determines what the authenticated user may do.
-- All authorization checks must be enforced by the backend.
-- Frontend visibility is not an authorization mechanism.
-- Permissions must follow confirmed business responsibilities.
-- A user must not gain permissions merely because their job title appears related to a feature.
-- Data visibility restrictions must be enforced by the backend, not only by frontend filtering.
-- Unauthorized actions must be rejected even when called directly through the REST API.
-- Do not introduce additional roles or permissions without business confirmation.
+1. Authentication identifies the user; authorization determines permitted actions.
+2. Authorization must be enforced by the Laravel backend for every protected operation.
+3. Frontend visibility and filtering are not security boundaries.
+4. Data access must follow confirmed role and department restrictions.
+5. Job titles and business responsibilities do not automatically grant permissions.
+6. Unauthorized operations must be rejected, including direct REST API requests.
+7. Role-based access must be consistent across application endpoints.
+8. Backend authorization must remain authoritative even when frontend controls are bypassed.
+9. New roles and permissions require business confirmation.
+10. Unconfirmed permissions must not be granted by default.
 
 ## 6. Authentication, RBAC, and Audit Logging
 
-Authentication, RBAC, and audit logging are separate concerns.
+These are separate system concerns:
 
-Their implementation sequence is defined by the engineering roadmap.
-
-1. **Authentication:** Identify and authenticate the user.
-2. **RBAC:** Authorize actions based on confirmed roles and permissions.
-3. **Audit Logging:** Record relevant actions, including who performed them and when.
+1. **Authentication:** verifies the identity of the user.
+2. **RBAC:** controls access based on assigned roles and confirmed permissions.
+3. **Audit Logging:** records relevant actions, including the actor and timestamp.
 
 Authentication does not imply authorization.
 
-Audit logging records relevant activities but does not automatically
-grant users permission to read all audit records.
+Audit logging does not automatically grant access to recorded activities.
+
+The active backend implementation uses Laravel / PHP.
+
+Laravel backend authorization is responsible for enforcing
+the confirmed access boundaries.
+
+The React frontend must not be treated as an authorization authority.
+
+Implementation sequencing is defined by the engineering roadmap.
 
 ## 7. Expected HTTP Behavior
 
-| Condition                                | HTTP Status        |
-| ---------------------------------------- | ------------------ |
-| User is not authenticated                | `401 Unauthorized` |
-| User is authenticated but not authorized | `403 Forbidden`    |
+| Condition | HTTP Status |
+|---|---|
+| User is not authenticated | `401 Unauthorized` |
+| User is authenticated but lacks permission | `403 Forbidden` |
 
-The backend must consistently enforce these responses
-for protected API operations.
+Protected API operations must consistently enforce these responses.
 
 Detailed error response structures and conventions
-are defined in `docs/api/API_CONTRACTS.md`.
+are defined in:
+
+`docs/api/API_CONTRACTS.md`
+
+## 8. Documentation Governance
+
+1. Role identifiers must remain consistent across PRD, USER_ROLES, API contracts, and implementation.
+2. Permission changes must be supported by approved business decisions.
+3. Changes affecting workflow authorization must also be synchronized with BUSINESS_WORKFLOW.md.
+4. Business constraints and validation requirements remain governed by BUSINESS_RULES.md.
+5. Persona descriptions must not independently establish role permissions.
+6. Any change to the role structure must be documented and approved before implementation.
+7. Unresolved permissions must retain their UNDECIDED status.

@@ -1,116 +1,664 @@
 # Application Architecture
 
-## Backend request flow (introduced progressively)
+**Product:** Garment ERP Core
+**Status:** DRAFT FOR REVIEW — ALIGNED WITH PRD v1.0
+**Architecture:** Headless Modular Monolith
+**Backend:** Laravel / PHP
+**Frontend:** React + Vite + TypeScript
+**Database:** PostgreSQL
 
-```
-HTTP Request
-     |
-     v
-HTTP Server
-     |
-     v
-Middleware Chain
-     |
-     v
-Router
-     |
-     v
-Handler
-     |
-     v
-Service / Use Case
-     |
-     v
-Repository Interface
-     |
-     v
-Repository Implementation
-     |
-     v
-PostgreSQL
-     |
-     v
-HTTP Response
-```
+This document defines the internal application architecture and responsibilities of the backend and frontend applications.
 
-Middleware wraps the HTTP request handling process and may execute before and after the handler chain.
+It must remain consistent with SYSTEM_ARCHITECTURE.md, PRD.md, BUSINESS_RULES.md, BUSINESS_WORKFLOW.md, USER_ROLES.md, API_CONTRACTS.md, and DATABASE_DESIGN.md.
 
-The repository interface defines the persistence contract used by the application layer. Its implementation handles database access.
+---
 
-Do not require every layer before the first endpoint. Introduce each layer when a sprint needs it.
+## 1. Backend Architecture
 
-| Layer                     | Responsibility                                                               |
-| ------------------------- | ---------------------------------------------------------------------------- |
-| Router                    | Maps HTTP methods and paths to handlers                                      |
-| Middleware                | Handles cross-cutting HTTP concerns                                          |
-| Handler                   | Parses HTTP input, invokes application operations, and writes HTTP responses |
-| Service / Use Case        | Coordinates business operations and enforces business rules                  |
-| Repository Interface      | Defines persistence contracts required by application operations             |
-| Repository Implementation | Executes database queries and persistence operations                         |
-| PostgreSQL                | Stores persistent business data                                              |
+The backend is implemented using Laravel / PHP.
 
-Handlers do not access PostgreSQL directly. Business rules live in the Service, never in the frontend.
+Laravel ERP Core is responsible for all authoritative business operations.
 
-### Layer Boundaries
+The backend uses a Modular Monolith architecture.
 
-- Router must not contain business logic.
-- Middleware must not implement domain-specific workflows.
-- Handler must not contain business rules or access PostgreSQL directly.
-- Service / Use Case owns business operations and workflow execution.
-- Repository owns database queries and persistence operations.
-- Frontend must not be treated as an authoritative source for business validation or workflow decisions.
-- Domain and application logic must not depend on HTTP-specific or database-driver-specific implementation details.
-- Infrastructure implementations must satisfy the interfaces required by the application layer.
+Business capabilities must be separated into logical modules without introducing unnecessary architectural complexity.
 
-Business rules must be enforced by the backend regardless of the client initiating the request.
+### 1.1 Backend Request Flow
 
-## Backend layout (grown progressively)
+The intended request flow is:
 
-Entry point under `apps/api/cmd/`, business code under `apps/api/internal/`. Exact package structure is decided in Sprint 0.5 and Sprint 6.
+    HTTP REQUEST
+         |
+         v
+    LARAVEL APPLICATION
+         |
+         v
+    API ROUTER
+         |
+         v
+    MIDDLEWARE
+         |
+         v
+    FORM REQUEST VALIDATION
+         |
+         v
+    CONTROLLER
+         |
+         v
+    APPLICATION SERVICE / USE CASE
+         |
+         v
+    BUSINESS RULES
+         |
+         v
+    PERSISTENCE LAYER
+         |
+         v
+    POSTGRESQL
+         |
+         v
+    API RESOURCE / RESPONSE
+         |
+         v
+    HTTP RESPONSE
 
-Internal packages must remain independent of frontend implementation details.
+This represents the logical responsibility flow.
 
-Package boundaries should follow business capabilities and dependency responsibilities rather than creating a separate package for every database table or API endpoint.
+It does not require every endpoint to introduce a separate class for every layer.
 
-## Frontend (Sprint 21+)
+Layers must be introduced progressively according to actual application responsibilities.
 
-- React + Vite + TypeScript + shadcn/ui on Tailwind CSS.
-- Static SPA build; The browser communicates with the backend through the REST API. Cross-Origin Resource Sharing (CORS) must be configured according to the actual frontend and backend origins.
-- Suggested folders: `pages/`, `components/`, `hooks/`, `lib/` (API client).
-- UNDECIDED: router, data-fetching, forms, state management, light/dark default and toggle.
-- Frontend does UX validation only; the backend is authoritative.
+### 1.2 Layer Responsibilities
 
-### Frontend Responsibilities
+| Layer                          | Responsibility                                             |
+| ------------------------------ | ---------------------------------------------------------- |
+| Router                         | Maps HTTP methods and paths to application controllers     |
+| Middleware                     | Handles cross-cutting HTTP concerns                        |
+| Form Request                   | Handles request structure and input validation             |
+| Controller                     | Receives HTTP input and coordinates application operations |
+| Application Service / Use Case | Coordinates business operations                            |
+| Business Logic                 | Enforces approved business rules and workflow transitions  |
+| Persistence Layer              | Handles database access and persistence                    |
+| API Resource                   | Defines the external response representation               |
+| PostgreSQL                     | Stores persistent business data                            |
 
-The frontend is responsible for:
+### 1.3 Layer Boundaries
 
-- User interface and user interaction.
+**Router**
+
+- Defines API routes.
+- Maps routes to controllers.
+- Must not contain business logic.
+
+**Middleware**
+
+- Handles cross-cutting request concerns.
+- May enforce configured authentication and authorization.
+- Must not independently implement domain-specific workflows.
+
+**Form Request**
+
+- Validates request structure and field-level constraints.
+- Provides a centralized location for applicable request validation.
+- Must not replace business-level validation.
+- Must not introduce unapproved business constraints.
+
+**Controller**
+
+- Handles HTTP input.
+- Invokes the appropriate application operation.
+- Returns the appropriate API response.
+- Must remain focused on HTTP responsibilities.
+- Must not directly implement complex business workflows.
+
+**Application Service / Use Case**
+
+- Coordinates business operations.
+- Applies approved workflow rules.
+- Coordinates related operations.
+- Manages transactional business operations when required.
+- Must not depend on frontend implementation details.
+
+**Business Logic**
+
+- Enforces approved business rules.
+- Validates workflow transitions.
+- Protects business invariants.
+- Must remain independent of HTTP-specific implementation details.
+
+**Persistence Layer**
+
+- Handles database queries and persistence.
+- Must follow the approved database access strategy.
+- Must not independently determine business workflow decisions.
+
+**API Resource**
+
+- Controls response representation.
+- Prevents accidental exposure of internal data.
+- Must respect authorization and data visibility restrictions.
+
+### 1.4 Architectural Flexibility
+
+The architecture must remain practical.
+
+Do not require:
+
+- A separate Service class for every endpoint.
+- A Repository interface for every database table.
+- An additional abstraction for simple operations.
+- A separate module for every API resource.
+- A separate class for every business rule.
+
+Introduce architectural abstractions only when they provide a clear benefit.
+
+The Repository pattern is not mandatory.
+
+The database access strategy remains subject to DATABASE_DESIGN.md.
+
+---
+
+## 2. Laravel Application Structure
+
+The backend application resides in:
+
+`apps/api/`
+
+Laravel's application structure must be followed without introducing unnecessary custom conventions.
+
+### 2.1 Proposed Logical Structure
+
+The following structure is a reference for organizing
+the application:
+
+    apps/api/
+    |
+    +-- app/
+    |   |
+    |   +-- Domain/
+    |   |   +-- Customers/
+    |   |   +-- Orders/
+    |   |   +-- Sampling/
+    |   |   +-- Commercial/
+    |   |   +-- Production/
+    |   |   +-- Fulfillment/
+    |   |
+    |   +-- Application/
+    |   |
+    |   +-- Http/
+    |   |   |
+    |   |   +-- Controllers/
+    |   |   |   +-- Api/
+    |   |   |       +-- V1/
+    |   |   |
+    |   |   +-- Middleware/
+    |   |   |
+    |   |   +-- Requests/
+    |   |   |   +-- Api/
+    |   |   |       +-- V1/
+    |   |   |
+    |   |   +-- Resources/
+    |   |       +-- Api/
+    |   |           +-- V1/
+    |   |
+    |   +-- Infrastructure/
+    |   |   +-- Persistence/
+    |   |
+    |   +-- Providers/
+    |
+    +-- bootstrap/
+    +-- config/
+    +-- database/
+    |   +-- migrations/
+    |   +-- factories/
+    |   +-- seeders/
+    |
+    +-- routes/
+    |   +-- api.php
+    |
+    +-- storage/
+    +-- tests/
+    |   +-- Feature/
+    |   +-- Unit/
+    |
+    +-- artisan
+    +-- composer.json
+    +-- phpunit.xml
+
+This is a proposed logical organization.
+
+The final internal structure must be reviewed against the actual Laravel application skeleton and approved implementation requirements.
+
+Do not create empty directories or unnecessary architectural layers merely to match this diagram.
+
+### 2.2 Business Module Boundaries
+
+The application should organize business responsibilities around the following capabilities:
+
+- Customer Management.
+- Order Management.
+- Sampling.
+- Sample / Look Approval.
+- LoA Management.
+- Payment Management.
+- Production Readiness.
+- Waiting / On Hold.
+- Functional Layout.
+- Mass Production.
+- Production Progress.
+- Timeline Management.
+- Delay Reports.
+- Production Issue Reports.
+- Order Change Requests.
+- Packing and Fulfillment.
+- Notifications.
+- Audit History.
+- Dashboard Aggregation.
+
+These are logical business capabilities.
+
+They do not automatically require separate Laravel packages, database tables, or deployment services.
+
+### 2.3 Dependency Rules
+
+1. Business logic must not depend on frontend code.
+2. Business logic must not depend on HTTP request objects.
+3. Controllers must not directly own complex business rules.
+4. Persistence implementations must not determine workflow transitions.
+5. Modules must avoid unnecessary circular dependencies.
+6. Cross-module operations must use clear application boundaries.
+7. Database transactions must protect related business changes.
+8. Business operations must preserve required historical records.
+
+---
+
+## 3. Backend Responsibilities
+
+Laravel ERP Core is responsible for:
+
+### 3.1 Business Operations
+
+- Customer and order management.
+- Sampling management.
+- Sample / Look Approval.
+- LoA administration.
+- Payment recording and correction.
+- Production Readiness evaluation.
+- Waiting / On Hold management.
+- PPIC Preparation.
+- Functional Layout.
+- Mass Production monitoring.
+- Production progress submissions.
+- QC and Rework operational tracking.
+- Timeline management.
+- Delay Report management.
+- Production Issue Report management.
+- Order Change Request management.
+- Packing and Fulfillment.
+- Dashboard aggregation.
+
+### 3.2 System Operations
+
+- Authentication.
+- Authorization and RBAC.
+- Request validation.
+- Database persistence.
+- Transaction management.
+- Audit history.
+- Notification processing.
+- Email dispatch initiation.
+- API response formatting.
+- Error handling.
+
+All responsibilities must follow confirmed business and technical requirements.
+
+---
+
+## 4. Business Logic and Workflow Enforcement
+
+The backend is the single authority for business logic.
+
+The following operations must be validated by ERP Core:
+
+- Sample Approval Gate.
+- LoA Gate.
+- Production Readiness.
+- Waiting / On Hold transitions.
+- Mass Production start.
+- Production stage progression.
+- QC PASS and FAIL handling.
+- Rework and QC repetition.
+- Production completion.
+- Fulfillment confirmation.
+- Order Change Request approval.
+- Payment correction approval.
+
+The exact authorized users and detailed transitions must follow BUSINESS_RULES.md and USER_ROLES.md.
+
+Do not implement an approval operation while its approval authority remains UNKNOWN.
+
+### 4.1 Protected Order Specifications
+
+Before LoA approval:
+
+- Admin may edit permitted order information.
+
+After LoA approval:
+
+- Protected specifications become locked.
+- Changes require an Order Change Request.
+- Owner approves or rejects the request.
+- Approved changes must preserve previous order versions.
+- Affected readiness requirements must be revalidated.
+- Affected Functional Layout information must be revalidated.
+
+After Cutting actually begins:
+
+- Normal specification changes are prohibited.
+
+The backend must enforce these restrictions.
+
+### 4.2 Production Progress
+
+Only PPIC may submit percentage-based progress for the following stages:
+
+- CUTTING.
+- SEWING.
+- FINISHING.
+
+Every submission must preserve:
+
+- Percentage value.
+- Submission timestamp.
+- Submitting user.
+- Relevant production stage.
+
+Historical submissions must never be overwritten.
+
+QC and REWORK must not receive percentage-progress mechanics until explicitly approved.
+
+Overall progress formula and weighting remain UNDECIDED.
+
+---
+
+## 5. Authentication and Authorization
+
+Authentication and authorization are separate concerns.
+
+Authentication identifies the user.
+
+Authorization determines what the user may access or perform.
+
+The backend must enforce all protected operations.
+
+Frontend visibility is not a security boundary.
+
+### 5.1 Confirmed Internal Roles
+
+- OWNER
+- ADMIN
+- PPIC
+- PRODUCTION_STAFF
+
+### 5.2 Confirmed Responsibilities
+
+**OWNER**
+
+- Management oversight.
+- Payment correction approval.
+- Order Change Request approval.
+- Read-only Production Issue Report access.
+- Order-status audit history access.
+
+**ADMIN**
+
+- Customer management.
+- Order administration.
+- LoA administration.
+- Payment recording.
+- Order Change Request creation.
+
+**PPIC**
+
+- Production Readiness.
+- Waiting / On Hold follow-up.
+- Functional Layout preparation.
+- Production progress submission.
+- Delay Report management.
+- Production Issue Report follow-up.
+- Fulfillment confirmation.
+
+**PRODUCTION_STAFF**
+
+- Relevant production information.
+- Assigned production work visibility.
+- Functional Layout access.
+- Production Issue Report creation.
+- Own issue report visibility.
+
+### 5.3 Authorization Rules
+
+- Every protected operation must be authorized by the backend.
+- Direct REST API requests must not bypass authorization.
+- Department and assignment restrictions must be enforced.
+- Admin must not access Production Issue Reports.
+- Production Staff must only access their own issue reports.
+- Owner has read-only access to Production Issue Reports.
+- Owner has read-only access to order-status audit history.
+
+Unconfirmed permissions must remain UNDECIDED.
+
+---
+
+## 6. Database Interaction
+
+PostgreSQL is the authoritative persistent data store.
+
+The Laravel application is the only application component responsible for database access.
+
+The database access strategy remains subject to DATABASE_DESIGN.md.
+
+Potential Laravel database access mechanisms include:
+
+- Eloquent ORM.
+- Laravel Query Builder.
+- Parameterized SQL through approved database facilities.
+
+The final selection remains UNDECIDED.
+
+Do not require a Repository pattern solely because the architecture contains a persistence layer.
+
+### 6.1 Transactions
+
+Transactions must be used when multiple related database changes must succeed or fail together.
+
+Examples include:
+
+- Creating an order with its related records.
+- Applying an approved Order Change Request.
+- Recording a payment correction.
+- Performing workflow transitions that require multiple persistent changes.
+
+The exact transaction boundaries must be determined by the relevant business operation.
+
+### 6.2 Historical Data
+
+Required historical records must remain traceable.
+
+Examples:
+
+- Order specification versions.
+- Sampling and approval history.
+- LoA history.
+- Payment correction history.
+- Production progress history.
+- Delay Report history.
+- Production Issue Report history.
+- Workflow state changes.
+
+Do not silently overwrite historical information when the business rules require preservation.
+
+---
+
+## 7. API Response Architecture
+
+The backend exposes REST API responses.
+
+The API contract is defined in:
+
+`docs/api/API_CONTRACTS.md`
+
+API response formatting must remain consistent.
+
+Controllers must not independently create different response formats for equivalent operations.
+
+API Resources or an equivalent approved mechanism may be used to control response representation.
+
+The final response schema remains subject to the approved API contract.
+
+---
+
+## 8. Error Handling
+
+Laravel application exceptions must be handled at the appropriate application boundary.
+
+The backend must distinguish:
+
+- Malformed requests.
+- Validation failures.
+- Authentication failures.
+- Authorization failures.
+- Missing resources.
+- Workflow conflicts.
+- Unexpected server failures.
+
+Internal exceptions must not be exposed directly to API clients.
+
+Error handling must follow:
+
+`docs/engineering/ERROR_HANDLING.md`
+
+The standard API error response structure must follow:
+
+`docs/api/API_CONTRACTS.md`
+
+---
+
+## 9. Frontend Architecture
+
+The frontend resides in:
+
+`apps/web/`
+
+Confirmed frontend technologies:
+
+- React.
+- Vite.
+- TypeScript.
+- Tailwind CSS.
+
+shadcn/ui remains PROPOSED.
+
+The frontend is a static Single Page Application (SPA).
+
+The browser communicates with ERP Core through REST API.
+
+The frontend must not connect directly to PostgreSQL.
+
+### 9.1 Frontend Responsibilities
+
+- User interface.
+- User interaction.
 - Client-side navigation.
-- Form input and UX validation.
-- API communication.
-- Displaying business states returned by the backend.
-- Presenting errors and operation results.
+- Form handling.
+- UX validation.
+- REST API communication.
+- Loading and error states.
+- Data presentation.
+- Displaying authoritative business states.
 
-The frontend API client is responsible for:
-- Centralizing API communication.
-- Handling HTTP responses and network failures.
-- Applying the configured authentication mechanism.
-- Providing consistent request and response handling.
+### 9.2 Suggested Frontend Structure
+
+    apps/web/
+    |
+    +-- src/
+    |   |
+    |   +-- components/
+    |   +-- pages/
+    |   +-- features/
+    |   +-- hooks/
+    |   +-- lib/
+    |   +-- types/
+    |   +-- assets/
+    |   +-- styles/
+    |
+    +-- public/
+    +-- package.json
+    +-- vite.config.ts
+    +-- tsconfig.json
+
+This is a suggested organization.
+
+The final structure must remain consistent with the actual React application and implementation needs.
+
+### 9.3 Frontend Validation
+
+Frontend validation is intended for user experience.
+
+It must not replace backend validation.
 
 The frontend must not independently determine:
 
-- Workflow transitions.
 - Approval decisions.
-- Production readiness.
-- Production progress calculations.
+- Production Readiness.
+- Workflow transitions.
 - Authorization decisions.
-- Business-critical status changes.
+- Authoritative progress calculations.
+- Protected order changes.
 
-These decisions must be provided or enforced by the ERP Core.
+### 9.4 Frontend API Client
 
-## Theme tokens (shadcn/ui, decision CR-002)
+The API client is responsible for:
 
-Lime primary, olive-tinted neutrals, emerald chart ramp, radius `0.45rem`. Use semantic tokens, never hard-coded colors. Domain-specific status color mappings are UNDECIDED.
+- Centralizing HTTP communication.
+- Handling request and response processing.
+- Applying the configured authentication mechanism.
+- Handling network failures.
+- Handling API error responses.
+- Providing consistent API access to frontend features.
+
+Authentication implementation remains UNDECIDED.
+
+### 9.5 Frontend Technical Decisions
+
+The following remain UNDECIDED:
+
+- Router.
+- Data-fetching strategy.
+- Form management.
+- State management.
+- Authentication integration.
+- Light and dark mode defaults.
+- Theme switching behavior.
+
+Do not introduce additional libraries without technical justification and approval.
+
+---
+
+## 10. Theme Tokens
+
+The proposed UI direction uses:
+
+- Lime primary.
+- Olive-tinted neutrals.
+- Emerald chart ramp.
+- Radius: `0.45rem`.
+
+shadcn/ui theme implementation remains PROPOSED.
+
+Use semantic theme tokens rather than hard-coded colors.
+
+Domain-specific status color mappings remain UNDECIDED.
 
 Visual status tokens must not introduce or define new business statuses.
 
@@ -184,3 +732,65 @@ Visual status tokens must not introduce or define new business statuses.
 	--sidebar-ring: oklch(0.58 0.031 107.3);
 }
 ```
+
+---
+
+## 11. CORS and API Communication
+
+The browser communicates with Laravel through the configured REST API origin.
+
+CORS must reflect the actual deployment origins.
+
+- Same-origin frontend and API deployment may not require cross-origin browser access.
+- Different origins require explicit allowed-origin configuration.
+- Wildcard origins must not be used as a substitute for a properly defined security policy.
+
+CORS is not authentication or authorization.
+
+---
+
+## 12. Application Configuration
+
+Application configuration must be separated from source code.
+
+Environment-specific configuration must not be hard-coded into application logic.
+
+Secrets must not be committed to Git.
+
+Development and production configuration must remain separate.
+
+---
+
+## 13. Architecture Governance
+
+1. Laravel is the only active backend framework.
+2. The previous Go implementation is discontinued.
+3. The backend remains a Modular Monolith.
+4. React communicates through REST API.
+5. PostgreSQL remains the persistent source of truth.
+6. Business logic remains backend-authoritative.
+7. Technical layers must be introduced progressively.
+8. Do not introduce unnecessary abstractions.
+9. Do not silently change approved architecture.
+10. Document material architectural decisions.
+11. Keep API contracts synchronized with implementation.
+12. Preserve unresolved decisions until explicitly approved.
+
+---
+
+## 14. Related Documentation
+
+- `docs/architecture/SYSTEM_ARCHITECTURE.md`
+- `docs/architecture/DEPLOYMENT_ARCHITECTURE.md`
+- `docs/api/API_CONTRACTS.md`
+- `docs/database/DATABASE_DESIGN.md`
+- `docs/database/DATA_DICTIONARY.md`
+- `docs/engineering/CODE_STYLE.md`
+- `docs/engineering/ERROR_HANDLING.md`
+- `docs/engineering/SECURITY.md`
+- `docs/engineering/TESTING.md`
+- `docs/engineering/GIT_WORKFLOW.md`
+- `docs/business/PRD.md`
+- `docs/business/BUSINESS_RULES.md`
+- `docs/business/BUSINESS_WORKFLOW.md`
+- `docs/business/USER_ROLES.md`

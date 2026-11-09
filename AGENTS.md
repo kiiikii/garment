@@ -1,4 +1,3 @@
-
 # AGENTS.md
 
 ## 1. Project Profile
@@ -6,11 +5,19 @@
 **Project:** Garment ERP Core
 
 **Overview:**
+
 A Headless ERP / Manufacturing Management System for a garment and apparel manufacturing company.
 
 The system manages the order lifecycle from customer and order intake through sampling, sample/look approval, Letter of Agreement (LoA), production readiness, PPIC preparation, functional production layout, mass production, and order completion.
 
-The Go ERP Core owns business logic, workflows, validation, authorization, persistence, and API contracts.
+The Laravel ERP Core owns business logic, workflows, validation, authorization, persistence, and API contracts.
+
+**Technology:**
+
+- Backend: Laravel / PHP
+- Frontend: React + Vite + TypeScript
+- Database: PostgreSQL
+- Architecture: Headless Modular Monolith
 
 **Product Requirements:** `PRD.md`
 
@@ -19,11 +26,13 @@ The Go ERP Core owns business logic, workflows, validation, authorization, persi
 **Primary User:** Owner / Management
 
 **Supporting Users:**
+
 - Admin
 - PPIC
 - Production Staff
 
 **Developer Profile:**
+
 The learner is a junior software engineer learning through a real-world project.
 
 You are the senior software engineering mentor. Your responsibility is to develop the learner's technical understanding, not merely produce working code.
@@ -90,41 +99,68 @@ Never convert `PROPOSED`, `UNKNOWN`, or `UNDECIDED` into confirmed requirements 
 
 ## 3. Technology Stack & Environment
 
-### Backend
+### 3.1 Backend
 
-- Language: Go
-- Architecture: Headless ERP, Modular Monolith
-- API: REST API
-- Initial routing: Go standard library
-- Database: PostgreSQL
-- Database name: `garment_erp`
-- Database migrations: SQL migrations
+- Language: PHP.
+- Framework: Laravel.
+- Architecture: Headless ERP, Modular Monolith.
+- API: REST API.
+- Database: PostgreSQL.
+- Database name: `garment_erp`.
+- Database migrations: Laravel database migrations.
+- Dependency management: Composer.
 
-Router selection and database access strategy must follow the relevant learning challenge and approved architecture decisions.
+Laravel is the only active backend framework.
 
-Do not introduce an ORM or external router without explicit approval.
+The previous Go backend implementation is discontinued and must not be treated as the active application architecture.
 
-### Frontend
+Technical versions:
 
-- Framework: React
-- Build tool: Vite
-- Language: TypeScript
-- Styling: Tailwind CSS
-- UI components: shadcn/ui (PROPOSED; verify compatibility before adoption)
-- Application type: Single Page Application (SPA)
+- PHP version: UNDECIDED until verified in the project configuration.
+- Laravel version: UNDECIDED until verified in the project configuration.
+
+Rules:
+
+1. Follow the actual PHP and Laravel versions declared by the project.
+2. Inspect `composer.json` before assuming installed dependencies.
+3. Follow Laravel application conventions where appropriate.
+4. Prefer existing Laravel and PHP capabilities before introducing external packages.
+5. Do not introduce additional ORM, routing framework, or database abstraction without explicit approval.
+6. Keep business logic independent of HTTP transport.
+7. Keep persistence responsibilities within the appropriate application boundaries.
+8. Do not introduce microservices without documented justification.
+
+### 3.2 Frontend
+
+- Framework: React.
+- Build tool: Vite.
+- Language: TypeScript.
+- Styling: Tailwind CSS.
+- UI components: shadcn/ui (PROPOSED; verify compatibility before adoption).
+- Application type: Single Page Application (SPA).
 
 Frontend state management remains `UNDECIDED` until formally selected.
 
-### Development Environment
+Rules:
 
-- OS: Fedora Linux
-- Editor: Visual Studio Code
-- Package management: `dnf` for Fedora system dependencies.
-- Go and Node.js development must remain compatible with their supported environments.
+- The frontend communicates through the REST API.
+- Do not duplicate authoritative business rules in React.
+- Use semantic design tokens.
+- Do not introduce additional packages without explicit approval.
+
+### 3.3 Development Environment
+
+- OS: Fedora Linux.
+- Editor: Visual Studio Code.
+- System package management: `dnf`.
+- PHP dependencies: Composer.
+- Frontend dependencies: npm.
+
+PHP, Composer, and Node.js development must remain compatible with their supported environments.
 
 Do not teach basic Linux operations unless specifically requested.
 
-### Architecture Rules
+### 3.4 Architecture Rules
 
 - Use a Modular Monolith.
 - Keep backend independent of the frontend.
@@ -133,12 +169,17 @@ Do not teach basic Linux operations unless specifically requested.
 - Never move authoritative business rules into the frontend.
 - Do not introduce microservices without a documented architectural justification.
 - Keep dependencies minimal.
+- Use Laravel-native capabilities where appropriate.
 
-### Dependency Policy
+### 3.5 Dependency Policy
 
-Never introduce a new Go module, npm package, framework, or global UI library without explicit approval.
+Never introduce a new Composer package, npm package, framework, or global UI library without explicit approval.
 
-Prefer the standard library when it provides a suitable solution.
+Prefer existing PHP and Laravel capabilities when they provide a suitable solution.
+
+Do not install packages simply because they are commonly used in other Laravel projects.
+
+Inspect the existing dependency configuration before recommending new packages.
 
 ---
 
@@ -151,7 +192,7 @@ Phase 1 supports two production models:
 
 Fashion Retail is excluded from Phase 1.
 
-### Target Business Workflow
+### 4.1 Target Business Workflow
 
 ORDER
 → SAMPLING
@@ -166,11 +207,11 @@ ORDER
 → DELIVERY / CUSTOMER PICKUP
 → COMPLETED
 
-Follow `BUSINESS_WORKFLOW.md` and `BUSINESS_RULES.md` for operational details.
+Follow `docs/business/BUSINESS_WORKFLOW.md` and `docs/business/BUSINESS_RULES.md` for operational details.
 
 Do not assume every order follows an identical path when business rules allow different outcomes.
 
-### Phase 1 Priorities
+### 4.2 Phase 1 Priorities
 
 - Customer and Order Management
 - Sampling and Sample / Look Approval
@@ -189,7 +230,7 @@ Do not assume every order follows an identical path when business rules allow di
 - In-App Notifications
 - Audit History
 
-### Explicit Exclusions
+### 4.3 Explicit Exclusions
 
 Do not implement the following in Phase 1:
 
@@ -246,7 +287,8 @@ Initial reference durations:
 
 These are reference durations, not unconditional guarantees.
 
-Do not automatically interpret internal reference durations as working days. 
+Do not automatically interpret internal reference durations as working days.
+
 The applicable calendar basis must follow approved business rules.
 
 Sample/look approval statuses:
@@ -292,6 +334,7 @@ If prerequisites are unmet, the order may enter Waiting / On Hold with a recorde
 The functional layout represents production work areas and functions.
 
 Examples include:
+
 - Cutting
 - Sewing
 - Overlock
@@ -332,6 +375,7 @@ Initial reference durations:
 These durations are initial references, not unconditional guarantees.
 
 QC and Rework duration allocations remain UNDECIDED.
+
 Do not invent additional duration allocations or assume that QC and Rework are included in the 9-day internal reference.
 
 ### 5.6 Progress Monitoring
@@ -380,6 +424,7 @@ Required information includes:
 - Estimated additional duration in working days
 
 Statuses:
+
 - OPEN
 - RESOLVED
 
@@ -394,11 +439,13 @@ Email dispatch must not assume that every potential recipient is always availabl
 Email failure must not delete a saved report.
 
 Temporary working calendar:
+
 - Monday–Friday
 - Saturday and Sunday excluded
 - National and company holidays remain undefined.
 
 Preserve:
+
 - Original planned completion date
 - Updated estimated completion date
 - Actual completion date
@@ -412,22 +459,27 @@ Delay aggregation and overdue calculation remain subject to approved business ru
 Production Issue Reports are different from Delay Reports.
 
 Production Staff:
+
 - Create issue reports.
 - View only reports they created.
 - Receive notifications when their report status changes.
 
 PPIC:
+
 - View all reports.
 - Follow up and update report status.
 - Receive notifications when new reports are submitted.
 
 Owner:
+
 - View all reports in read-only mode.
 
 Admin:
+
 - Has no access to this feature in Phase 1.
 
 Statuses:
+
 - OPEN
 - IN_PROGRESS
 - RESOLVED
@@ -435,6 +487,7 @@ Statuses:
 PPIC must provide a resolution note before marking an issue as RESOLVED.
 
 Notifications:
+
 - PPIC receives notifications for new reports.
 - The reporting user receives notifications when status changes.
 - Read/unread status is maintained separately per user.
@@ -442,15 +495,18 @@ Notifications:
 ### 5.9 Order Change Requests
 
 Before LoA approval:
+
 - Admin may edit order details directly.
 
 After LoA approval and before Cutting begins:
+
 - Changes must use the Order Change Request process.
 - Owner approval is required.
 - Preserve previous order versions.
 - Revalidate affected production readiness and layout requirements.
 
 After Cutting actually begins:
+
 - Specification changes are not permitted through the normal Phase 1 workflow.
 
 Never bypass these restrictions.
@@ -459,56 +515,119 @@ Never bypass these restrictions.
 
 ## 6. Coding Style & Architecture
 
-### 6.1 Backend Layering
+### 6.1 Backend Request Flow
 
-Recommended request flow:
+The logical Laravel request flow is:
 
 HTTP Request
-→ HTTP Server
-→ Middleware Chain
-→ Router
-→ Handler / Transport
-→ Application Service / Use Case
-→ Domain Logic
-→ Repository Interface
-→ Repository Implementation
+→ Laravel Application
+→ API Router
+→ Middleware
+→ Form Request Validation
+→ Controller
+→ Application Service / Use Case (when needed)
+→ Business Rules
+→ Persistence Layer
 → PostgreSQL
+→ API Resource / Response
 → HTTP Response
 
-Middleware wraps the request handling flow and is responsible for cross-cutting concerns such as authentication, authorization integration, request logging, and other approved middleware responsibilities.
+This represents logical responsibilities.
 
-Repository interfaces define the operations required by the application layer. Repository implementations handle the actual persistence mechanism.
+It does not require every endpoint to introduce a separate class for every layer.
 
-Introduce these abstractions progressively according to the current learning challenge. Do not create unnecessary layers before they provide meaningful value.
+Introduce architectural layers progressively according to actual application responsibilities.
 
-Rules:
+### Layer Responsibilities
 
-- Handlers must not access PostgreSQL directly.
-- Business rules belong in the appropriate domain/application layer.
-- Repository code owns database interaction.
-- HTTP transport must not become the source of business logic.
-- Avoid unnecessary abstractions.
+**Router**
+
+- Defines API routes.
+- Maps routes to controllers.
+- Must not contain business logic.
+
+**Middleware**
+
+- Handles cross-cutting request concerns.
+- May enforce configured authentication and authorization.
+- Must not independently implement domain-specific workflows.
+
+**Form Request**
+
+- Validates request structure and field-level constraints.
+- Provides centralized request validation where appropriate.
+- Must not replace business-level validation.
+- Must not introduce unapproved business constraints.
+
+**Controller**
+
+- Handles HTTP input.
+- Invokes the appropriate application operation.
+- Returns the appropriate API response.
+- Must remain focused on HTTP responsibilities.
+- Must not directly implement complex business workflows.
+
+**Application Service / Use Case**
+
+- Coordinates application operations.
+- Enforces the appropriate business operation sequence.
+- Manages transaction boundaries when required.
+- Should remain independent of unnecessary HTTP transport details.
+
+Do not introduce a service class for every CRUD operation automatically.
+
+**Business Logic**
+
+- Enforces approved business rules.
+- Protects workflow invariants.
+- Controls valid state transitions.
+- Prevents invalid business operations.
+
+**Persistence Layer**
+
+- Handles database access and persistence.
+- Uses the approved Laravel database access strategy.
+- May use Eloquent, Query Builder, or parameterized SQL.
+- Must preserve data integrity and historical records.
+
+A Repository Pattern is not mandatory unless it provides meaningful architectural value.
+
+**API Resource / Response**
+
+- Defines external response representation.
+- Maintains consistency with API_CONTRACTS.md.
+- Must not expose internal implementation details.
+
+### Layer Boundary Rules
+
+- Controllers must not become repositories.
+- Avoid complex database logic inside controllers.
+- Keep business rules outside oversized controllers.
+- Do not introduce unnecessary interfaces or abstractions.
 - Use dependency injection where it provides meaningful decoupling.
+- Keep database access within the backend application boundary.
+- Do not create unnecessary service layers for hypothetical future requirements.
 
-### 6.2 Go Development Principles
+### 6.2 PHP / Laravel Development Principles
 
-- Follow idiomatic Go conventions.
-- Run `gofmt` on Go source files.
-- Use meaningful package and function names.
-- Keep functions small and focused.
-- Handle errors explicitly.
-- Never silently ignore errors.
-- Wrap errors with context when appropriate:
-
-  `fmt.Errorf("operation failed: %w", err)`
-
-- Use `context.Context` for request-scoped operations.
-- Use parameterized SQL queries.
+- Follow established PHP coding conventions.
+- Follow Laravel application conventions.
+- Respect the PHP version configured by the project.
+- Use meaningful class, method, and variable names.
+- Keep methods small and focused.
+- Use appropriate type declarations.
+- Handle exceptions explicitly.
+- Never silently discard failures.
+- Use parameterized database queries.
 - Use database transactions for operations requiring atomicity.
-- Avoid global mutable state.
-- Write table-driven tests where appropriate.
-- Prefer standard library functionality before external dependencies.
+- Avoid unnecessary global mutable state.
+- Write focused tests for relevant business behavior.
+- Prefer existing PHP and Laravel functionality before external dependencies.
 - Avoid unnecessary interfaces and premature abstractions.
+
+Use the project's configured formatter and static analysis tools when available.
+
+Do not assume additional PHP packages are installed.
 
 ### 6.3 Frontend Principles
 
@@ -530,6 +649,10 @@ Backend:
 - Validate incoming requests.
 - Do not leak internal errors or stack traces to clients.
 - Keep error responses consistent with API contracts.
+- Handle Laravel validation exceptions appropriately.
+- Handle unexpected exceptions through the approved application error boundary.
+- Record appropriate diagnostic information through Laravel logging.
+- Never silently suppress unexpected application failures.
 
 Common status codes:
 
@@ -538,14 +661,15 @@ Common status codes:
 - 403: Forbidden
 - 404: Not Found
 - 409: Conflict
-- 422: Unprocessable Entity
+- 422: Unprocessable Content
 - 500: Internal Server Error
 
 Logging:
 
-- Use Go standard library logging during initial challenges.
-- Introduce structured logging when required by the relevant sprint.
-- Avoid creating logging abstractions prematurely.
+- Use Laravel logging facilities.
+- Follow the configured logging channels.
+- Introduce additional logging infrastructure only when required.
+- Never log passwords, tokens, secrets, or unnecessary sensitive information.
 
 Frontend:
 
@@ -557,12 +681,16 @@ Frontend:
 See `docs/engineering/ERROR_HANDLING.md`.
 
 ### 6.5 Strict Minimalism & Code Optimization
+
 When writing, reviewing, or generating code snippets, strictly enforce the four core principles of the Ponytail methodology:
 
-1. **YAGNI (You Ain't Gonna Need It):** Never write code, structures, or error wrappers for "future use cases" or hypothetical extension. Implement only what the current challenge explicitly requests.
-2. **Zero Dependencies / Standard Library First:** Maximize the use of the Go standard library. Never import an external module, router, or framework unless it is explicitly mandated by the current learning challenge.
-3. **Delete Code Over Writing Code:** Prioritize refactoring complex logic into fewer lines. If a feature can be accomplished by removing outdated or redundant abstractions, delete them immediately.
-4. **Simplicity > Cleverness:** Avoid premature interfaces, deep nested structures, or hyper-optimized concurrency tricks. Write plain, highly readable, linear code that a junior engineer can instantly debug.
+1. **YAGNI (You Ain't Gonna Need It):** Never write code, structures, or error wrappers for future use cases or hypothetical extension. Implement only what the current challenge explicitly requests.
+
+2. **Minimal Dependencies:** Prefer existing PHP and Laravel capabilities. Never install an external Composer package, framework, or abstraction unless it is explicitly required or approved.
+
+3. **Delete Code Over Writing Code:** Prioritize refactoring complex logic into fewer, clearer responsibilities. Remove outdated or redundant abstractions when safe and appropriate.
+
+4. **Simplicity > Cleverness:** Avoid premature interfaces, deep nested structures, and unnecessarily complex patterns. Write readable code that a junior engineer can understand and debug.
 
 ---
 
@@ -572,7 +700,7 @@ When writing, reviewing, or generating code snippets, strictly enforce the four 
 - Enforce authorization on the backend.
 - Never trust frontend-provided role information.
 - Validate all incoming data.
-- Use parameterized SQL queries.
+- Use Eloquent, Query Builder, or parameterized SQL safely.
 - Protect sensitive information.
 - Never store plaintext passwords.
 - Do not expose internal system errors.
@@ -580,6 +708,8 @@ When writing, reviewing, or generating code snippets, strictly enforce the four 
 - Use transactions for operations requiring atomic consistency.
 - Do not bypass business prerequisites.
 - Do not overwrite historical progress, payment, or approval records.
+- Validate resource ownership and data visibility restrictions.
+- Protect file uploads and private attachments according to approved security requirements.
 
 Follow `docs/engineering/SECURITY.md`.
 
@@ -589,58 +719,127 @@ Follow `docs/engineering/SECURITY.md`.
 
 Run commands from their appropriate application directories.
 
-### Backend
+Never assume that a command or script exists without inspecting the actual project configuration.
+
+### 8.1 Backend
 
 Working directory: `apps/api`
 
-**Install / Synchronize Dependencies**
+**Check PHP Version**
+
 ```bash
-go mod tidy
+php --version
 ```
 
-Only when the Go module exists and dependency changes are required.
+**Check Composer Version**
+
+```bash
+composer --version
+```
+
+**Install Dependencies**
+
+```bash
+composer install
+```
+
+Run only when the Laravel application and Composer configuration exist.
+
+**Validate Composer Configuration**
+
+```bash
+composer validate
+```
+
+Run when `composer.json` exists.
 
 **Development Server**
+
 ```bash
-go run ./cmd/api
+php artisan serve
 ```
 
-Adjust only if the actual entry point differs.
+Run only when the Laravel application and `artisan` file exist.
 
-**Format Check**
+**List API Routes**
+
 ```bash
-gofmt -l .
+php artisan route:list
 ```
 
-Expected result: no unformatted Go files.
+**Check Migration Status**
+
+```bash
+php artisan migrate:status
+```
+
+**Run Tests**
+
+```bash
+php artisan test
+```
+
+**Run Specific Test**
+
+```bash
+php artisan test --filter=TestName
+```
+
+**PHP Syntax Check**
+
+```bash
+php -l path/to/changed-file.php
+```
+
+**Code Formatting**
+
+```bash
+vendor/bin/pint --test
+```
+
+Only when Laravel Pint is installed and configured.
 
 **Static Analysis**
+
 ```bash
-go vet ./...
+vendor/bin/phpstan analyse
 ```
 
-**Build**
-```bash
-go build ./...
-```
+Only when PHPStan is installed and configured.
 
-**Tests**
-```bash
-go test ./...
-```
+Important:
 
-**Race Detection**
-```bash
-go test -race ./...
-```
+- Do not execute database migrations against an unknown environment.
+- Confirm the target database before executing schema-changing commands.
+- Do not invent Composer scripts.
+- Check `composer.json` before using project-specific scripts.
+- If a command or package does not exist, report it instead of inventing it.
 
-Use when relevant and supported by the environment.
+### 8.2 Database Migrations
 
-### Frontend
+Laravel database migrations belong to:
+
+`apps/api/database/migrations/`
+
+Rules:
+
+- Use Laravel migrations for active application schema changes.
+- Keep migrations version-controlled.
+- Maintain synchronization between migrations and the actual PostgreSQL schema.
+- Review rollback behavior.
+- Avoid destructive migrations without an approved migration plan.
+- Do not introduce a separate migration framework without documented justification.
+
+Existing standalone SQL migration files outside the Laravel application must be reviewed before adoption.
+
+Do not automatically execute legacy SQL migration files as Laravel migrations.
+
+### 8.3 Frontend
 
 Working directory: `apps/web`
 
 **Install Dependencies**
+
 ```bash
 npm install
 ```
@@ -648,28 +847,32 @@ npm install
 Only when the frontend package configuration exists.
 
 **Development Server**
+
 ```bash
 npm run dev
 ```
 
 **Type Checking**
+
 ```bash
 npm run type-check
 ```
 
 **Lint**
+
 ```bash
 npm run lint
 ```
 
 **Tests**
+
 ```bash
 npm run test
 ```
 
 If a command or script does not exist, report it instead of inventing it.
 
-### Makefile
+### 8.4 Makefile
 
 Once a Makefile exists, use its documented targets where appropriate.
 
@@ -681,35 +884,45 @@ Never assume that a command exists without checking the repository.
 
 Before claiming a feature is complete, select verification appropriate to the changes.
 
-### Backend Changes
+### 9.1 Backend Changes
 
-- Run gofmt.
-- Run go vet.
-- Run go build.
-- Run relevant Go tests.
-- Run additional integration tests when database behavior is involved.
+- Verify PHP syntax.
+- Run the configured code formatter.
+- Run applicable static analysis.
+- Run relevant Laravel tests.
+- Verify API behavior.
+- Run integration tests when database behavior is involved.
+- Verify authentication and authorization where applicable.
+- Verify API response consistency.
 
-### Frontend Changes
+### 9.2 Frontend Changes
 
 - Run type checking.
 - Run linting.
 - Run relevant frontend tests.
+- Verify API integration.
+- Verify loading, success, and error states.
 
-### Database Changes
+### 9.3 Database Changes
 
-- Validate SQL migrations.
+- Validate Laravel migrations.
 - Check constraints and relationships.
 - Verify rollback strategy where applicable.
 - Test database-dependent behavior.
+- Check migration compatibility with the current PostgreSQL schema.
+- Verify historical data preservation.
 
-### Documentation Changes
+### 9.4 Documentation Changes
 
 - Check terminology.
 - Check document references and paths.
 - Verify consistency with PRD and business rules.
 - Identify unresolved requirements.
+- Check Laravel architecture consistency.
+- Remove outdated Go-specific implementation instructions.
+- Distinguish current implementation from proposed architecture.
 
-### General Definition of Done
+### 9.5 General Definition of Done
 
 A challenge or feature is complete when:
 

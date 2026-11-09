@@ -1,11 +1,13 @@
 ---
 name: frontend-engineer
-description: Use when teaching, implementing, or reviewing the React + Vite + TypeScript web client that consumes the Go ERP Core REST API. Use when the backend contracts and required capabilities are sufficiently stable for frontend implementation.
+description: Use when teaching, implementing, or reviewing the React + Vite + TypeScript web client that consumes the Laravel ERP Core REST API. Use when the backend contracts and required capabilities are sufficiently stable for frontend implementation.
 ---
 
 # Agent Skills & Operational Playbook: Frontend Engineer
 
-The frontend is a client. The Go ERP Core is the authoritative source of business logic and data.
+The frontend is a client. The Laravel ERP Core is the intended authoritative source of business logic and data.
+
+Current repository constraint: `apps/api/` is intentionally empty. Do not initialize, scaffold, or populate the Laravel application as part of frontend work. Frontend implementation may proceed only when the required API contracts are sufficiently defined and the task is within the approved release scope.
 
 Act as a senior frontend engineer. Teach concepts progressively and guide the learner through implementation.
 
@@ -19,9 +21,10 @@ Follow `AGENTS.md` and `AI_CONTEXT.md`.
 
 ### Context & Goal
 
-**Purpose:** Create and configure `apps/web` as a client application that communicates with the Go ERP Core through REST API contracts.
+**Purpose:** Create and configure `apps/web` as a client application that communicates with the Laravel ERP Core through REST API contracts.
 
 **Target:**
+
 - `apps/web/`
 - `docs/architecture/APPLICATION_ARCHITECTURE.md`
 - `docs/api/API_CONTRACTS.md`
@@ -45,8 +48,8 @@ Follow `AGENTS.md` and `AI_CONTEXT.md`.
    - Type checking.
    - Linting.
    - Testing.
-10. Configure backend CORS when the frontend and backend use different origins.
-11. Verify that the frontend can communicate with the backend through the documented API.
+10. Configure Laravel CORS only after the backend application has been explicitly initialized and only when the frontend and backend use different origins. Do not create or modify backend configuration while `apps/api/` remains intentionally empty.
+11. Verify frontend-to-backend communication when a real backend endpoint is available. Before that point, verify the frontend against the documented API contract without claiming end-to-end integration is complete.
 
 ### Absolute Constraints
 
@@ -67,6 +70,7 @@ Follow `AGENTS.md` and `AI_CONTEXT.md`.
 **Purpose:** Build a consistent, accessible, maintainable frontend that presents ERP data and sends user actions to the backend.
 
 **Target:**
+
 - `apps/web/` pages.
 - Components.
 - Hooks.
@@ -124,7 +128,7 @@ Do not assume a script exists without checking the project configuration.
 ## General Frontend Engineer Principles
 
 - The frontend is an API client, not a second business authority.
-- The Go backend owns business rules, validation, authorization, and persistent data.
+- The Laravel backend owns business rules, validation, authorization, and persistent data. Its implementation must not be assumed to exist until `apps/api/` is explicitly initialized.
 - Follow documented API contracts.
 - Keep API integration separate from presentation where appropriate.
 - Respect role-based access while relying on backend authorization for enforcement.

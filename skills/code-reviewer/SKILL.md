@@ -1,6 +1,6 @@
 ---
 name: code-reviewer
-description: Use when the learner submits Go, SQL, or TypeScript code for review. Reviews like a real pull request with severity tags, actionable feedback, and targeted corrections without rewriting the entire submission.
+description: Use when the learner submits PHP/Laravel, SQL, or TypeScript code for review. Reviews like a real pull request with severity tags, actionable feedback, and targeted corrections without rewriting the entire submission.
 ---
 
 # Agent Skills & Operational Playbook: Code Reviewer
@@ -15,6 +15,17 @@ Follow `AGENTS.md`, `AI_CONTEXT.md`, and the relevant engineering documentation.
 
 ---
 
+## Current Repository Boundary
+
+- `apps/api/` is intentionally empty at the current project stage.
+- Do not initialize, scaffold, or populate the Laravel application as part of a code review.
+- Do not create `composer.json`, `artisan`, Laravel directories, or backend source files unless the user explicitly requests backend initialization.
+- Until backend initialization is explicitly requested, backend review is limited to user-provided code snippets, documentation, API contracts, architecture proposals, and static design reasoning.
+- Do not describe a proposed or pasted code snippet as integrated, executable, or tested in the repository unless that has been independently verified.
+- An empty `apps/api/` directory is not itself a code defect or failed implementation unless the current approved task explicitly requires backend initialization.
+
+---
+
 ## SKILL 1: Reviewing Code Like a Pull Request
 
 ### Context & Goal
@@ -22,6 +33,7 @@ Follow `AGENTS.md`, `AI_CONTEXT.md`, and the relevant engineering documentation.
 **Purpose:** Provide actionable feedback while developing the learner's ability to evaluate code quality and engineering trade-offs.
 
 **Target:**
+
 - Submitted source files.
 - Related business and product requirements.
 - `docs/engineering/CODE_STYLE.md`
@@ -35,11 +47,16 @@ Follow `AGENTS.md`, `AI_CONTEXT.md`, and the relevant engineering documentation.
 3. Inspect the project structure and available verification scripts.
 4. Run relevant verification commands when the environment permits.
 
-   **Go backend:**
-   - `gofmt -l .`
-   - `go vet ./...`
-   - `go build ./...`
-   - `go test ./...`
+   **PHP / Laravel backend:**
+   - `php -l path/to/changed-file.php` for PHP syntax checks.
+   - `composer validate` when `composer.json` exists.
+   - `php artisan test` when a Laravel application and `artisan` file exist.
+   - `vendor/bin/pint --test` only when Laravel Pint is installed and configured.
+   - `vendor/bin/phpstan analyse` only when PHPStan is installed and configured.
+   - `php artisan route:list` when reviewing route changes and the Laravel application exists.
+   - `php artisan migrate:status` when reviewing migrations and the target database configuration is known.
+
+   Do not run schema-changing migration commands as a routine review step. Confirm the database target and test environment before executing any command that may access or modify a database. The current `apps/api/` directory is intentionally empty, so do not assume Laravel commands are currently available.
 
    **Frontend:**
    - Run the configured type-check script.
@@ -69,7 +86,6 @@ Follow `AGENTS.md`, `AI_CONTEXT.md`, and the relevant engineering documentation.
    - Consistency with the current architecture.
 
 6. Assign a severity to every actionable finding:
-
    - 🔴 **Critical:** Security vulnerabilities, data corruption, serious business rule violations, or failures that make core functionality unsafe.
    - 🟠 **Important:** Significant correctness, reliability, or maintainability problems that should be fixed before approval.
    - 🟡 **Improvement:** Meaningful improvements that do not currently break correctness.
@@ -139,6 +155,7 @@ If the implementation depends on an UNKNOWN or UNDECIDED business rule:
 **Purpose:** Detect architectural, implementation, and security problems across the ERP system.
 
 **Target:**
+
 - `apps/api/`
 - `apps/web/`
 - Database schema and migrations.
@@ -148,16 +165,16 @@ Apply only the checks relevant to the code being reviewed and the current develo
 
 ### Step-by-Step Execution
 
-#### 1. HTTP Handler / Transport
+#### 1. Laravel HTTP Layer
 
 Check whether:
 
-- The handler is responsible for HTTP concerns.
+- Routes, middleware, Form Requests, and controllers have clear HTTP-layer responsibilities.
 - Request parsing and response serialization are correct.
 - Input validation follows the API contract.
 - Appropriate HTTP status codes are returned.
 - Internal errors and sensitive implementation details are not exposed.
-- Database operations and business workflows are not implemented directly in the handler.
+- Controllers do not contain complex database operations or extensive business workflows.
 
 #### 2. Application Service / Use Case
 
@@ -179,15 +196,15 @@ Check whether:
 - Domain behavior matches confirmed requirements.
 - Unresolved business decisions are not implemented as assumptions.
 
-#### 4. Repository / Database Interaction
+#### 4. Persistence / Database Interaction
 
 Check whether:
 
 - SQL queries use parameterized inputs.
 - Database constraints support data integrity.
 - Transactions are used when multiple database operations must succeed or fail together.
-- Errors are handled and wrapped appropriately.
-- Repository responsibilities are separated from business workflows.
+- Database and persistence errors are handled through the approved Laravel exception and error-response conventions.
+- Persistence responsibilities are separated from business workflows. A Repository Pattern is optional and must not be required without a concrete architectural reason.
 - Migrations are consistent with the approved database design.
 - Destructive operations are treated carefully.
 
