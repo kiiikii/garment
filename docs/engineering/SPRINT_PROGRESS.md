@@ -7,7 +7,7 @@
 - **Database**: PostgreSQL (`garment_erp`)
 - **Frontend**: React + Vite + TypeScript (Single Page Application in `apps/web/`)
 - **Architecture**: Headless Modular Monolith, REST API (`/api/v1`)
-- **Current Position**: **Milestone 1 COMPLETED** → **Milestone 2 PENDING** (Sprint 1: Authentication, Authorization & User Roles Foundation)
+- **Current Position**: **Milestone 2 COMPLETED** → **Milestone 3 PENDING** (Sprint 2 – 3: Database Schema & Foundational Order Persistence)
 
 ---
 
@@ -44,12 +44,12 @@
 ---
 
 ### Milestone 2: Authentication, Authorization & User Roles Foundation (Sprint 1)
-- **Status**: `IN PROGRESS`
+- **Status**: `COMPLETED`
 - **Progress**:
   - **Task 2.1 (User Model & Role Taxonomy)**: `COMPLETED` — Created `App\Enums\Role` (`OWNER`, `ADMIN`, `PPIC`, `PRODUCTION_STAFF`), added `role` column to `users` table migration, configured Enum casting and fillable attributes on `User` model, and executed migrations.
-  - **Task 2.2 (API Token Authentication via Laravel Sanctum)**: `PENDING`
-  - **Task 2.3 (Role-Based Authorization Middleware & Policies)**: `PENDING`
-  - **Task 2.4 (Automated Tests for 401 & 403 Access Barriers)**: `PENDING`
+  - **Task 2.2 (API Token Authentication via Laravel Sanctum)**: `COMPLETED` — Installed Sanctum v4.3.3, implemented login, logout, and profile endpoints with Bearer token authentication; 10/10 tests passing.
+  - **Task 2.3 (Role-Based Authorization Middleware)**: `COMPLETED` — Implemented `App\Http\Middleware\EnsureUserHasRole` using `App\Enums\Role`, registered `role` middleware alias in `bootstrap/app.php`, returning HTTP 403 Forbidden.
+  - **Task 2.4 (Automated Tests for 401 & 403 Access Barriers)**: `COMPLETED` — Authored `tests/Feature/AuthorizationTest.php` testing all 4 roles against confirmed permission boundaries; 16/16 tests passing cleanly on SQLite in-memory.
 - **Scope**:
   - User model and migrations for confirmed roles (`OWNER`, `ADMIN`, `PPIC`, `PRODUCTION_STAFF`).
   - API token authentication mechanism.
