@@ -7,7 +7,7 @@
 - **Database**: PostgreSQL (`garment_erp`)
 - **Frontend**: React + Vite + TypeScript (Single Page Application in `apps/web/`)
 - **Architecture**: Headless Modular Monolith, REST API (`/api/v1`)
-- **Current Position**: **Milestone 0 COMPLETED** → **Milestone 1 PENDING** (Sprint 0: Laravel Bootstrap & Health Check)
+- **Current Position**: **Milestone 1 COMPLETED** → **Milestone 2 PENDING** (Sprint 1: Authentication, Authorization & User Roles Foundation)
 
 ---
 
@@ -27,13 +27,13 @@
 ---
 
 ### Milestone 1: Laravel ERP Core Bootstrap & Health Foundation (Sprint 0)
-- **Status**: `IN PROGRESS`
+- **Status**: `COMPLETED`
 - **Progress**:
   - **Task 1.1 (Laravel Application Scaffolding)**: `COMPLETED` — Scaffolded Laravel 13.40.0 on PHP 8.5.12 in `apps/api/`.
   - **Task 1.2 (PostgreSQL Connection Configuration)**: `COMPLETED` — Configured `pgsql` driver targeting PostgreSQL (`teemant_konveksi` on Neon with SSL); verified connectivity via `migrate:status`.
   - **Task 1.3 (Liveness Endpoint GET /health)**: `COMPLETED` — Registered `GET /health` in `routes/web.php` returning `200 OK` with JSON `{"status":"ok"}`; verified via `route:list`.
   - **Task 1.4 (API Error Handling Baseline)**: `COMPLETED` — Configured JSON exception handling in `bootstrap/app.php` for `api/*` routes; verified 404 returns `{"message":"Resource not found"}` with `application/json`.
-  - **Task 1.5 (Automated Test & Verification)**: `PENDING`
+  - **Task 1.5 (Automated Test & Verification)**: `COMPLETED` — Created `tests/Feature/HealthTest.php` with 2 automated feature tests covering `/health` (200 JSON) and `/api/v1/*` 404 handler (404 JSON); 4/4 tests passing cleanly.
 - **Scope**:
   - Initialize Laravel 13.x in `apps/api/` using PHP 8.5.
   - Configure PostgreSQL database connectivity profile.
@@ -44,7 +44,12 @@
 ---
 
 ### Milestone 2: Authentication, Authorization & User Roles Foundation (Sprint 1)
-- **Status**: `PENDING`
+- **Status**: `IN PROGRESS`
+- **Progress**:
+  - **Task 2.1 (User Model & Role Taxonomy)**: `COMPLETED` — Created `App\Enums\Role` (`OWNER`, `ADMIN`, `PPIC`, `PRODUCTION_STAFF`), added `role` column to `users` table migration, configured Enum casting and fillable attributes on `User` model, and executed migrations.
+  - **Task 2.2 (API Token Authentication via Laravel Sanctum)**: `PENDING`
+  - **Task 2.3 (Role-Based Authorization Middleware & Policies)**: `PENDING`
+  - **Task 2.4 (Automated Tests for 401 & 403 Access Barriers)**: `PENDING`
 - **Scope**:
   - User model and migrations for confirmed roles (`OWNER`, `ADMIN`, `PPIC`, `PRODUCTION_STAFF`).
   - API token authentication mechanism.
