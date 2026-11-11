@@ -19,9 +19,11 @@ return new class extends Migration {
       $table->timestamps();
     });
 
-    DB::statement(
-      "ALTER TABLE sizes ADD CONSTRAINT chk_sizes_type_allowed CHECK (type IN ('STANDARD','CUSTOM'))",
-    );
+    if (DB::connection()->getDriverName() === "pgsql") {
+      DB::statement(
+        "ALTER TABLE sizes ADD CONSTRAINT chk_sizes_type_allowed CHECK (type IN ('STANDARD','CUSTOM'))",
+      );
+    }
   }
 
   /**
