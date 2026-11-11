@@ -4,10 +4,10 @@
 
 - **System**: Garment ERP Core
 - **Backend Framework**: Laravel 13.x (PHP 8.5.x)
-- **Database**: PostgreSQL (`garment_erp`)
+- **Database**: PostgreSQL (canonical database: `garment_erp`; Neon development database: `teemant_konveksi`)
 - **Frontend**: React + Vite + TypeScript (Single Page Application in `apps/web/`)
 - **Architecture**: Headless Modular Monolith, REST API (`/api/v1`)
-- **Current Position**: **Milestone 2 COMPLETED** → **Milestone 3 PENDING** (Sprint 2 – 3: Database Schema & Foundational Order Persistence)
+- **Current Position**: **Milestone 2 COMPLETED** → **Milestone 3 IN PROGRESS** (Sprint 2 – 3: Database Schema & Foundational Order Persistence)
 
 ---
 
@@ -30,7 +30,7 @@
 - **Status**: `COMPLETED`
 - **Progress**:
   - **Task 1.1 (Laravel Application Scaffolding)**: `COMPLETED` — Scaffolded Laravel 13.40.0 on PHP 8.5.12 in `apps/api/`.
-  - **Task 1.2 (PostgreSQL Connection Configuration)**: `COMPLETED` — Configured `pgsql` driver targeting PostgreSQL (`teemant_konveksi` on Neon with SSL); verified connectivity via `migrate:status`.
+  - **Task 1.2 (PostgreSQL Connection Configuration)**: `COMPLETED` — Configured the `pgsql` driver for the Neon development database `teemant_konveksi` with SSL; the canonical database name remains `garment_erp`. Verified connectivity via `migrate:status`.
   - **Task 1.3 (Liveness Endpoint GET /health)**: `COMPLETED` — Registered `GET /health` in `routes/web.php` returning `200 OK` with JSON `{"status":"ok"}`; verified via `route:list`.
   - **Task 1.4 (API Error Handling Baseline)**: `COMPLETED` — Configured JSON exception handling in `bootstrap/app.php` for `api/*` routes; verified 404 returns `{"message":"Resource not found"}` with `application/json`.
   - **Task 1.5 (Automated Test & Verification)**: `COMPLETED` — Created `tests/Feature/HealthTest.php` with 2 automated feature tests covering `/health` (200 JSON) and `/api/v1/*` 404 handler (404 JSON); 4/4 tests passing cleanly.
@@ -59,7 +59,24 @@
 ---
 
 ### Milestone 3: Database Schema & Foundational Order Persistence (Sprint 2 – 3)
-- **Status**: `PENDING`
+- **Status**: `IN PROGRESS`
+- **Completed Tasks**:
+  - **Tasks 3.2.1–3.2.7**: `COMPLETED` — Implemented the foundational customer, size, order, order-size, and order-image migrations, order status enum, and size seeder. Confirmed size baseline: `S`, `M`, `L`, and `XL` are `STANDARD`; additional sizes such as `XXL` are `CUSTOM`.
+  - **Verification**: Milestone 3 migrations ran successfully on Neon; all 4 PostgreSQL `CHECK` constraints passed (`chk_sizes_type_allowed`, `chk_orders_production_type_allowed`, `chk_orders_status_type_allowed`, `chk_order_sizes_quantity_non_negative`); `SizeSeeder` idempotency verified; full test suite: 17 tests passed, 49 assertions.
+- **Remaining Work**:
+  - Eloquent Models and Relationships for the implemented order-intake schema, consistent with `DATABASE_DESIGN.md`; resolve any affected `UNDECIDED` entity decisions before implementing behavior.
+  - Order Intake API: `POST /api/v1/orders`, `GET /api/v1/orders`, and `GET /api/v1/orders/{id}`. Finalize detailed endpoint contracts before implementation, as required by `API_CONTRACTS.md`.
+  - Customer endpoints in the planned API inventory where required to support order intake.
+  - Backend validation for confirmed order requirements, including CMT/FOB, required customer information, and non-negative per-size quantities.
+  - Focused persistence and API tests for the order-intake behavior and relationships.
+  - Keep the database dictionary and ERD synchronized with the finalized schema and relationships.
+- **Known Migration Tracking Note**:
+  - Four default Laravel migrations remain `Pending` although their tables exist in the database. This discrepancy is intentionally left unreconciled.
+- **Unresolved Decisions**:
+  - **Customer field nullability**: `UNDECIDED` for database nullability of `phone` and `origin_address`; confirmed order-intake rules require these fields.
+  - **Production type representation**: `UNDECIDED` (enum, constrained field, or reference entity); the current migration uses a constrained field.
+  - **Cancellation workflow**: `UNDECIDED`; the `CANCELLED` order status exists, but its transitions and business consequences are not approved.
+  - **Image requirements and storage**: `UNDECIDED` for minimum image count, accepted formats, file size constraints, storage provider, and retention strategy.
 - **Scope**:
   - Native Laravel migrations for `customers`, `sizes`, `orders`, `order_sizes`, `order_images`.
   - Order Intake endpoints: `POST /api/v1/orders`, `GET /api/v1/orders`, `GET /api/v1/orders/{id}`.
