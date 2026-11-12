@@ -126,7 +126,7 @@ Examples:
 
 ### 2.3 Request and Response Format
 
-Standard request and response bodies must use JSON.
+Standard request and response bodies must use JSON. Endpoints that accept files may use `multipart/form-data`; each such endpoint must define how structured fields are encoded within the multipart body.
 
 Request fields must document:
 
@@ -140,6 +140,30 @@ Request fields must document:
 Date and time serialization must remain consistent.
 
 The final date/time serialization format remains UNDECIDED until approved in the API design process.
+
+#### Approved Common Response Shape for New Endpoints
+
+**Status:** `CONFIRMED` for new endpoints; existing Auth endpoints are unchanged.
+
+Repository review found mixed existing Auth success shapes: login returns top-level `token` and `user`, profile returns a `data` object, and logout returns a `message`. Auth tests assert those current contracts. Existing validation/auth failures use Laravel-style `message`, with validation failures also providing field-keyed `errors`.
+
+Success shape for new endpoints:
+
+```json
+{ "data": { "id": 42 } }
+```
+
+Error shapes:
+
+```json
+{ "message": "The request could not be validated.", "errors": { "customer.phone": ["The selected customer needs a phone number."] } }
+```
+
+```json
+{ "message": "Unauthenticated." }
+```
+
+Validation errors use `422` and map field paths to arrays of messages. Other errors use the common HTTP status plus `message`; internal details are not returned. This follows the existing Laravel-style error behavior while giving successful resources one consistent `data` envelope. Applying this as the project-wide format, and normalizing existing Auth endpoints, requires separate approval; do not refactor Auth as part of Order Intake.
 
 ### 2.4 HTTP Status Codes
 
@@ -267,11 +291,10 @@ The exact identifier strategy remains UNDECIDED.
 
 Product reference images and supported attachments must use an explicit backend-controlled upload mechanism.
 
+Order reference images are submitted inline as repeated `images[]` file parts using `multipart/form-data` and stored in Backblaze B2 through its S3-Compatible API. Store object keys, not public URLs, in `order_images.file_path`. Recommend private bucket access and keep credentials in environment variables.
+
 The following remain subject to technical design:
 
-- Storage provider.
-- File size constraints.
-- Accepted formats.
 - Upload response structure.
 - File metadata.
 - Access control.
@@ -279,7 +302,7 @@ The following remain subject to technical design:
 
 Do not assume binary files are stored directly in PostgreSQL.
 
-The minimum product image requirement remains UNDECIDED.
+Images are optional. When supplied, accept 0–10 JPEG, PNG, or WebP image files, each no larger than 5 MB.
 
 ---
 
@@ -309,7 +332,7 @@ Expected capabilities:
 
 Customer deletion and archival behavior must follow approved business and data-retention rules.
 
-The customer snapshot strategy at order creation remains UNDECIDED.
+Orders retain immutable snapshots of the required customer name, phone, and origin/address as recorded at order creation.
 
 ### 3.2 Order
 
@@ -332,16 +355,17 @@ Confirmed order information:
 - Customer Origin / Address.
 - Size Quantities.
 - Production Type: CMT or FOB.
-- Product Reference Images, supported but not confirmed mandatory.
+- Product Reference Images, optional under the approved order-intake contract.
 
 Rules:
 
 1. Only CMT and FOB are supported in Phase 1.
 2. Quantities are recorded individually by size.
-3. Negative quantities are prohibited.
-4. Total quantity equals the sum of recorded size quantities when calculated.
-5. Total quantity storage strategy remains UNDECIDED.
-6. Product image mandatory requirement remains UNDECIDED.
+3. Each order requires at least one size entry, and each quantity is an integer of at least 1.
+4. Each size is referenced by `size_id`; duplicate size references within an order are invalid.
+5. Total quantity equals the sum of recorded size quantities when calculated.
+6. Total quantity storage strategy remains UNDECIDED.
+7. Reference images are optional and follow the approved upload limits in Section 2.9.
 
 Before LoA approval, Admin may update permitted order details.
 
@@ -1220,6 +1244,96 @@ Include applicable scenarios:
 
 ## 6. API Implementation Rules
 
+### Order Intake Contract: `POST /api/v1/orders`
+
+**Status:** `CONFIRMED` contract decisions for new Order Intake endpoints. Implementation remains pending.
+
+**Purpose:** Create an order and its customer snapshot, size quantities, and reference images when provided under the approved image-presence rule.
+
+**Success:** `201 Created`.
+
+#### Authentication and authorization
+
+- Authentication is required.
+- Required role: `ADMIN`, according to the confirmed Order Administration capability.
+- Enforce authorization in the backend. The implemented authentication mechanism is used; API-wide authentication contract details remain listed in Section 7.
+
+#### Request encoding and fields
+
+Use `multipart/form-data`. Send inline customer fields as `customer[name]`, `customer[phone]`, and `customer[origin_address]`; send size entries as indexed fields such as `sizes[0][size_id]` and `sizes[0][quantity]`; send each image as a repeated `images[]` file part. For an existing customer, send `customer_id` instead of the `customer[...]` fields.
+
+| Field | Required | Validation |
+| ----- | -------- | ---------- |
+| `customer_id` | Exactly one of `customer_id` or `customer` | Must identify an existing customer. |
+| `customer[name]`, `customer[phone]`, `customer[origin_address]` | Exactly one customer option | Inline customer; all three values required and non-empty. |
+| `production_type` | Yes | Only `CMT` or `FOB`. |
+| `sizes[i][size_id]` | Yes; at least one indexed item | Must identify an existing active Size; `size_id` values must be unique within the request. |
+| `sizes[i][quantity]` | Yes per size item | Integer greater than or equal to 1. |
+| `images[]` | No | Optional; 0–10 files, JPEG/PNG/WebP, maximum 5 MB per file. |
+| `order_number` | Must not be sent | Client-supplied value is rejected (`422`); backend generates it. |
+| `status` | Must not be sent | Client-supplied value is rejected (`422`); backend sets `INTAKE`. |
+
+The exactly-one customer rule rejects both missing customer options and requests supplying both. New orders require `name`, `phone`, and `origin_address` regardless of customer source. If the selected existing customer has a missing phone or origin/address, reject with `422` and field-specific errors under `customer.phone` and/or `customer.origin_address`; never update the customer implicitly. For inline customers, identify missing values under their corresponding `customer.*` fields. An order snapshots all three values immutably at creation.
+
+The API uses `size_id` references, not client-provided size names or classifications. `S`, `M`, `L`, and `XL` are `STANDARD`; additional sizes such as `XXL` are `CUSTOM`. Inactive sizes are rejected.
+
+#### Success response
+
+`201 Created` uses `{"data": <created order>}` and contains the generated `order_number`, customer reference, immutable customer snapshot (`customer_name_snapshot`, `customer_phone_snapshot`, `customer_origin_address_snapshot`), `production_type`, status `INTAKE`, submitted size entries, and image metadata. Never return raw B2 object keys or public URLs. Image retrieval is future behavior and must use authorization plus short-lived signed URLs.
+
+#### Order number and concurrency
+
+Generate `order_number` on the backend in the format `ORD-{ULID}`. Enforce the existing database unique constraint as the final concurrency safeguard and retry if a collision occurs. Client values are not accepted.
+
+#### Persistence, uploads, and compensation
+
+- Create or resolve the customer, create the Order with immutable snapshot fields, persist size rows and image metadata, and set `INTAKE` within the required database transaction boundary.
+- Store image objects in a private Backblaze B2 bucket through its S3-Compatible API. Save object keys in `order_images.file_path`, never public URLs. Credentials must come from environment variables.
+- Object storage and PostgreSQL do not share a transaction. Persist one upload-intent row per image before uploading. Lifecycle: `PENDING_UPLOAD → UPLOADING → UPLOADED → ATTACHED`; cleanup lifecycle: `CLEANUP_PENDING → CLEANING → CLEANED`; repeated/aged failures enter `NEEDS_ATTENTION`. In the PostgreSQL order transaction create the Order, size and image rows and atomically mark intents `ATTACHED`.
+- Upload and cleanup workers claim rows using expiring leases. Only the current lease owner may update a claimed row. Cleanup may claim only unattached cleanup states; attachment and cleanup transitions use conditional/locked database updates so they cannot both win. Expired leases are safely reclaimed; recovery reconciles the deterministic object key with B2 before deciding whether cleanup is required. A crash after upload but before recording `UPLOADED` is treated as a possible successful upload, never assumed absent. An upload failure enters cleanup handling because a partial object may exist.
+- On persistence failure, attempt immediate compensating deletion and persist cleanup state. Scheduled cleanup retries at 1 minute, 5 minutes, 15 minutes, 1 hour, 6 hours, then every 24 hours. Escalate after 5 failures or 24 hours, whichever comes first. `ADMIN` owns cleanup; `OWNER` is escalation fallback. Initial notification consists of a persistent error record and application logs. Continue daily cleanup attempts while `NEEDS_ATTENTION` until deletion succeeds.
+- Deletion retries are idempotent: repeat deletion by the same object key after a crash between B2 deletion and database update; verify B2 missing-object behavior during implementation. Retain images for the lifetime of their orders; no automatic deletion. Keep credentials in environment variables. Never put raw object keys in API responses or application logs.
+- Migration prerequisite: add nullable `customer_name_snapshot`, `customer_phone_snapshot`, and `customer_origin_address_snapshot` columns to `orders` using a new forward Laravel migration. New orders must populate all three. Existing order rows may retain null snapshots for legacy compatibility.
+- The same forward migration must change the `order_sizes.quantity` CHECK constraint from `quantity >= 0` to `quantity >= 1`.
+
+#### Error responses
+
+Use common error statuses. New endpoints return errors as `{"message": "...", "errors": {"field.path": ["..."]}}`; omit `errors` when there are no field errors. Existing Auth endpoint response bodies remain unchanged.
+
+- `400` malformed multipart/request syntax.
+- `401` missing or invalid authentication.
+- `403` authenticated caller lacks `ADMIN` authorization.
+- `404` referenced customer or size does not exist.
+- `422` missing/both customer options; incomplete inline or selected customer (field-specific `customer.phone` / `customer.origin_address` errors); invalid production type; absent/empty sizes; duplicate size IDs; inactive size; quantity below 1; client-supplied `order_number` or `status`; or invalid upload under approved file rules.
+- `409` order-number collision after the generation strategy cannot safely resolve it, or an applicable resource conflict.
+- `500` unexpected server failure; return no credentials or storage secrets.
+
+Field-specific validation errors use paths such as `customer.phone` and `sizes.0.quantity`; do not expose credentials, raw object keys, or stack traces.
+
+#### Approved Upload Intent / Cleanup Outbox Design
+
+The design is approved; the table remains to be implemented by a forward migration. Use one row per intended B2 object, committed before upload.
+
+| Column | Proposed role |
+| ------ | ------------- |
+| `id` | Proposed `BIGINT` primary key, following current table convention. |
+| `request_id` | UUID grouping image intents from one order-intake request. |
+| `object_key` | Unique B2 object key written to `order_images.file_path` when attached. |
+| `status` | `PENDING_UPLOAD`, `UPLOADING`, `UPLOADED`, `ATTACHED`, `CLEANUP_PENDING`, `CLEANING`, `CLEANED`, or `NEEDS_ATTENTION`. |
+| `order_id` | Nullable FK; set when attached to the persisted order. |
+| `lease_owner`, `lease_expires_at` | Nullable lease claim for mutually exclusive upload/cleanup work; expired leases are reclaimable. |
+| `cleanup_attempts` | Count of deletion attempts, default `0`. |
+| `next_retry_at` | Timestamp for the next cleanup attempt. |
+| `last_error` | Last sanitized upload or cleanup error, nullable. |
+| `escalated_at` | Timestamp when operational escalation occurred, nullable. |
+| `cleanup_started_at` | Timestamp when the intent first entered cleanup; anchors the 24-hour escalation threshold. |
+| `uploaded_at`, `attached_at`, `cleaned_at` | Lifecycle timestamps, nullable until the corresponding event. |
+| `created_at`, `updated_at` | Record timestamps. |
+
+Add the approved table through a new forward migration. The scheduler must not clean an intent while a current upload lease exists; it reclaims expired leases and reconciles the stored object key against B2. Lease duration/renewal, scheduler cadence, and FK delete behavior are implementation details to validate when building the worker.
+
+The order, `order_images` rows, and transition of corresponding intent rows to `ATTACHED` must commit atomically. Cleanup success transitions to `CLEANED`; failures retain the row, increment attempts, update sanitized `last_error` and `next_retry_at`, and set `escalated_at` after five failures or 24 hours since cleanup began. `NEEDS_ATTENTION` remains eligible for daily retry. Use concurrency-safe row claims and verify B2 object-existence and delete-missing semantics during implementation. Cancellation remains `UNDECIDED` and outside this contract.
+
 1. Do not implement endpoints without approved contracts.
 2. Do not invent business rules.
 3. Do not invent workflow transitions.
@@ -1245,12 +1359,13 @@ Include applicable scenarios:
 | --------------------------------------- | --------- |
 | Authentication mechanism                | UNDECIDED |
 | Token / session strategy                | UNDECIDED |
-| Standard error response schema          | UNDECIDED |
+| Success response envelope for new endpoints | CONFIRMED |
+| Error response schema for new endpoints     | CONFIRMED |
 | Pagination convention                   | UNDECIDED |
 | Filtering and sorting convention        | UNDECIDED |
 | Date and time serialization             | UNDECIDED |
 | Resource identifier format              | UNDECIDED |
-| File upload and storage mechanism       | UNDECIDED |
+| Future signed image URL endpoint details | FUTURE |
 | API rate limiting requirements          | UNDECIDED |
 | Request idempotency requirements        | UNDECIDED |
 | API documentation generation strategy   | UNDECIDED |

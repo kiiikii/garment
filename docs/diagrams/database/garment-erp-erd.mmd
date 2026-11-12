@@ -1,0 +1,68 @@
+%% Target order-intake ERD. Snapshot columns, quantity >= 1, and approved ORDER_UPLOAD_INTENTS require forward migrations; these are not current schema.
+erDiagram
+    CUSTOMERS ||--o{ ORDERS : "referenced by customer_id"
+    ORDERS ||--|{ ORDER_SIZES : contains
+    SIZES ||--o{ ORDER_SIZES : selected by
+    ORDERS ||--o{ ORDER_IMAGES : references
+    ORDERS o|--o{ ORDER_UPLOAD_INTENTS : attaches
+
+    CUSTOMERS {
+        bigint id PK
+        varchar name
+        varchar phone "nullable in current schema"
+        text origin_address "nullable in current schema"
+    }
+
+    ORDERS {
+        bigint id PK
+        varchar order_number "ORD-{ULID}; UK"
+        bigint customer_id FK
+        varchar customer_name_snapshot "nullable; new orders required; migration pending"
+        varchar customer_phone_snapshot "nullable; new orders required; migration pending"
+        text customer_origin_address_snapshot "nullable; new orders required; migration pending"
+        varchar production_type "CMT or FOB"
+        varchar status "initial INTAKE"
+    }
+
+    ORDER_SIZES {
+        bigint id PK
+        bigint order_id FK
+        bigint size_id FK
+        integer quantity "CHECK >= 1 after migration"
+    }
+
+    SIZES {
+        bigint id PK
+        varchar name UK
+        varchar type "STANDARD or CUSTOM"
+        boolean is_active
+    }
+
+    ORDER_IMAGES {
+        bigint id PK
+        bigint order_id FK
+        varchar file_path "private B2 object key"
+        integer sort_order
+    }
+
+    ORDER_UPLOAD_INTENTS {
+        bigint id PK
+        uuid request_id
+        varchar object_key UK
+        varchar status "PENDING_UPLOAD/UPLOADING/UPLOADED/ATTACHED/CLEANUP_PENDING/CLEANING/CLEANED/NEEDS_ATTENTION"
+        bigint order_id FK "nullable until attached"
+        varchar lease_owner "nullable worker claim"
+        timestamptz lease_expires_at "nullable expiring lease"
+        integer cleanup_attempts "default 0"
+        timestamptz next_retry_at "nullable"
+        text last_error "nullable; sanitized"
+        timestamptz cleanup_started_at "nullable; starts escalation clock"
+        timestamptz escalated_at "nullable"
+        timestamptz uploaded_at "nullable"
+        timestamptz attached_at "nullable"
+        timestamptz cleaned_at "nullable"
+    }
+
+    %% B2 objects are external to the relational schema. file_path stores the object key, never a public URL.
+    %% Persist intent before upload. Lease claims prevent concurrent workers; recover expired leases by reconciling B2 state.
+    %% Retry cleanup at 1m, 5m, 15m, 1h, 6h, then every 24h; escalate after 5 failures or 24h; retain attempts/errors.

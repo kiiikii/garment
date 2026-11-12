@@ -298,14 +298,24 @@ It must not introduce a separate API error format.
 
 The following details remain UNDECIDED until finalized in the API design process:
 
-- Error response field names.
 - Error code naming.
-- Validation error structure.
 - Error metadata.
 - Request correlation identifier.
 - Error response localization.
 
 Every endpoint must use the approved common error structure.
+
+### 5.1 Approved Response Convention for New Endpoints
+
+The current Auth implementation and tests use Laravel-style error bodies: an error `message`, with an `errors` object for validation failures. Auth success bodies are inconsistent: login returns top-level `token` and `user`, profile returns `data`, and logout returns `message`.
+
+Approved convention for new endpoints:
+
+- Success: `{"data": <resource-or-result>}`.
+- Validation error (`422`): `{"message": <summary>, "errors": {<field-path>: [<messages>]}}`; order-intake errors for incomplete selected customers use paths such as `customer.phone` and `customer.origin_address`.
+- Other errors: `{"message": <safe message>}`.
+
+The validation error shape matches the current Laravel validation behavior asserted by `AuthTest`; the `data` success envelope is already used by the profile endpoint. Existing Auth endpoints and their currently tested response shapes remain unchanged. This approval applies to new endpoints only.
 
 ---
 

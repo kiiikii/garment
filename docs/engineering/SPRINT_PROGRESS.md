@@ -62,25 +62,32 @@
 - **Status**: `IN PROGRESS`
 - **Completed Tasks**:
   - **Tasks 3.2.1–3.2.7**: `COMPLETED` — Implemented the foundational customer, size, order, order-size, and order-image migrations, order status enum, and size seeder. Confirmed size baseline: `S`, `M`, `L`, and `XL` are `STANDARD`; additional sizes such as `XXL` are `CUSTOM`.
-  - **Verification**: Milestone 3 migrations ran successfully on Neon; all 4 PostgreSQL `CHECK` constraints passed (`chk_sizes_type_allowed`, `chk_orders_production_type_allowed`, `chk_orders_status_type_allowed`, `chk_order_sizes_quantity_non_negative`); `SizeSeeder` idempotency verified; full test suite: 17 tests passed, 49 assertions.
+  - **Eloquent Models & Relationships**: `COMPLETED` — Implemented `Customer`, `Order`, `Size`, `OrderSize`, and `OrderImage` models with relationships matching the existing foreign keys. The order-size association uses the explicitly approved `OrderSize` model.
+  - **Verification**: Milestone 3 migrations ran successfully on Neon; all 4 PostgreSQL `CHECK` constraints passed (`chk_sizes_type_allowed`, `chk_orders_production_type_allowed`, `chk_orders_status_type_allowed`, `chk_order_sizes_quantity_non_negative`); `SizeSeeder` idempotency verified; 8 relationship tests and 4 persistence tests passed; latest full suite: 29 tests passed, 82 assertions.
+  - **Schema change pending**: The quantity-constraint verification above reflects the current `quantity >= 0` constraint. The approved `quantity >= 1` rule is not yet in the database and requires the forward migration listed below.
 - **Remaining Work**:
-  - Eloquent Models and Relationships for the implemented order-intake schema, consistent with `DATABASE_DESIGN.md`; resolve any affected `UNDECIDED` entity decisions before implementing behavior.
-  - Order Intake API: `POST /api/v1/orders`, `GET /api/v1/orders`, and `GET /api/v1/orders/{id}`. Finalize detailed endpoint contracts before implementation, as required by `API_CONTRACTS.md`.
+  - Apply approved order-intake schema changes through a new forward migration: add nullable immutable customer snapshot columns to `orders` and change the order-size quantity constraint to `quantity >= 1`.
+  - Implement the approved `order_upload_intents` schema through a forward migration, alongside the snapshot columns and quantity constraint update.
+  - Order Intake API: `POST /api/v1/orders`, `GET /api/v1/orders`, and `GET /api/v1/orders/{id}`. New endpoints use the approved `data` success and `message`/`errors` error envelopes; existing Auth endpoints remain unchanged.
   - Customer endpoints in the planned API inventory where required to support order intake.
-  - Backend validation for confirmed order requirements, including CMT/FOB, required customer information, and non-negative per-size quantities.
-  - Focused persistence and API tests for the order-intake behavior and relationships.
+  - Backend validation for approved order requirements, including exactly one customer source, customer snapshots, CMT/FOB, at least one unique active size reference, quantity >= 1, and optional image limits (0–10 JPEG/PNG/WebP, max 5 MB each).
+  - Order Intake API tests; the existing persistence tests do not verify API behavior.
+  - Implement upload and cleanup workers with expiring leases; select lease duration/renewal and scheduler cadence, and verify B2 object-existence and repeated-delete behavior.
   - Keep the database dictionary and ERD synchronized with the finalized schema and relationships.
 - **Known Migration Tracking Note**:
   - Four default Laravel migrations remain `Pending` although their tables exist in the database. This discrepancy is intentionally left unreconciled.
 - **Unresolved Decisions**:
-  - **Customer field nullability**: `UNDECIDED` for database nullability of `phone` and `origin_address`; confirmed order-intake rules require these fields.
   - **Production type representation**: `UNDECIDED` (enum, constrained field, or reference entity); the current migration uses a constrained field.
   - **Cancellation workflow**: `UNDECIDED`; the `CANCELLED` order status exists, but its transitions and business consequences are not approved.
-  - **Image requirements and storage**: `UNDECIDED` for minimum image count, accepted formats, file size constraints, storage provider, and retention strategy.
+  - **API response conventions**: `data` success and `message`/`errors` for new endpoints are approved. Existing Auth endpoint shapes remain unchanged.
+  - **Order number**: backend generates `ORD-{ULID}`; database uniqueness and collision retry are required.
+  - **Size baseline**: `S`, `M`, `L`, and `XL` are `STANDARD`; additional sizes such as `XXL` are `CUSTOM`, as recorded in `BUSINESS_RULES.md` and `DATABASE_DESIGN.md`.
+  - **Database access strategy**: remains `UNDECIDED` project-wide in `DATABASE_DESIGN.md`; the completed Eloquent models record implementation for this task only.
+  - **Implementation checks (not open business decisions)**: choose lease duration/renewal and scheduler cadence; verify B2 missing-object and repeated-delete behavior.
 - **Scope**:
   - Native Laravel migrations for `customers`, `sizes`, `orders`, `order_sizes`, `order_images`.
   - Order Intake endpoints: `POST /api/v1/orders`, `GET /api/v1/orders`, `GET /api/v1/orders/{id}`.
-  - Domain validation: CMT/FOB check, individual size quantities (`quantity >= 0`).
+  - Domain validation: CMT/FOB check, at least one active size entry, and individual size quantities (`quantity >= 1`).
 
 ---
 

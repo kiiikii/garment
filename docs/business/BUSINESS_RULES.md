@@ -81,6 +81,15 @@ The confirmed order information includes:
 
 Admin handles order intake.
 
+Customer selection at order intake must use exactly one of:
+
+- An existing customer identified by `customer_id`; or
+- A new customer supplied inline with `name`, `phone`, and `origin_address`.
+
+Each order stores an immutable snapshot of the required customer name, phone number, and origin/address as they were recorded for that order. Later changes to the customer master record must not change an existing order's snapshot.
+
+An existing customer missing a required phone number or origin/address cannot be used to create an order. Reject the order request with field-specific validation errors; do not silently modify the customer record.
+
 Do not introduce additional mandatory order fields without business approval.
 
 ### 3.2 Product Reference Images
@@ -89,8 +98,16 @@ Rules:
 
 1. An order supports multiple product reference images.
 2. Images represent the ordered product or model.
-3. Whether at least one image is mandatory remains `UNDECIDED`.
-4. Storage strategy, accepted formats, file size, and technical constraints are technical decisions subject to system requirements.
+3. Images are optional under the approved order-intake requirements.
+4. The API accepts image files as `images[]` using `multipart/form-data`.
+5. Image objects are stored in Backblaze B2 through its S3-Compatible API. `order_images.file_path` stores the object key, not a public URL.
+6. Use a private bucket.
+7. Storage credentials must be supplied through environment variables and must not be committed to source control.
+8. Upload and database failures require compensating deletion of uploaded objects where possible and durable orphan cleanup.
+9. Images are optional; accept 0–10 JPEG, PNG, or WebP files with a maximum size of 5 MB each.
+10. Persist an upload intent before uploading. Use expiring leases to prevent concurrent worker claims and safely recover expired work. Upload lifecycle: `PENDING_UPLOAD → UPLOADING → UPLOADED → ATTACHED`; cleanup lifecycle: `CLEANUP_PENDING → CLEANING → CLEANED`; repeated failures enter `NEEDS_ATTENTION`.
+11. Retry cleanup after 1 minute, 5 minutes, 15 minutes, 1 hour, 6 hours, then every 24 hours. Escalate after 5 failures or 24 hours since cleanup began, whichever comes first. ADMIN owns cleanup; OWNER is escalation fallback. Persist error records and application logs. Continue retries until cleanup succeeds.
+12. Retain images for the lifetime of their orders; no automatic deletion. Never expose raw B2 object keys. Future retrieval requires authorization and short-lived signed URLs.
 
 ### 3.3 Size Quantities
 
@@ -111,9 +128,10 @@ Rules:
 1. Each applicable size has its own quantity.
 2. Total order quantity equals the sum of recorded size quantities when calculated.
 3. Whether total quantity is stored, calculated dynamically, or both remains `UNDECIDED`.
-4. Quantity must not be negative.
-5. Multiple distinct product models per order, custom sizes, and zero quantity for an individual size remain `UNDECIDED`.
-6. Actual-piece, reject-quantity, and rework-quantity tracking are not mandatory Phase 1 requirements.
+4. An order must include at least one size item, and each submitted size quantity must be at least 1.
+5. The baseline sizes `S`, `M`, `L`, and `XL` are `STANDARD`; additional sizes such as `XXL` are `CUSTOM`.
+6. Multiple distinct product models per order remain `UNDECIDED`.
+7. Actual-piece, reject-quantity, and rework-quantity tracking are not mandatory Phase 1 requirements.
 
 ### 3.4 Order Editing
 
@@ -725,6 +743,7 @@ Do not activate candidate events without explicit approval.
 - Customer Origin / Address is required.
 - Production Type must be `CMT` or `FOB`.
 - Size quantity must not be negative.
+- At least one size item is required; each quantity must be an integer of at least 1.
 - Calculated total quantity must equal the sum of recorded size quantities.
 
 Unresolved validation rules:
@@ -732,11 +751,7 @@ Unresolved validation rules:
 | Rule                                 | Status                         |
 | ------------------------------------ | ------------------------------ |
 | Phone number format                  | `UNDECIDED`                    |
-| Minimum one reference image          | `UNDECIDED`                    |
-| Maximum image count and file size    | `UNDECIDED` / technical policy |
 | Multiple product models per order    | `UNDECIDED`                    |
-| Custom sizes                         | `UNDECIDED`                    |
-| Zero quantity for an individual size | `UNDECIDED`                    |
 | Minimum total order quantity         | `UNDECIDED`                    |
 
 ### 16.3 Roles
@@ -950,11 +965,8 @@ The following decisions must remain unresolved until explicitly approved by the 
 | Item                                                                  | Status                  |
 | --------------------------------------------------------------------- | ----------------------- |
 | Phone number format                                                   | `UNDECIDED`             |
-| Minimum reference image requirement                                   | `UNDECIDED`             |
 | Multiple product models per order                                     | `UNDECIDED`             |
-| Custom sizes                                                          | `UNDECIDED`             |
 | Total quantity storage strategy                                       | `UNDECIDED`             |
-| Zero quantity per size                                                | `UNDECIDED`             |
 | Minimum total order quantity                                          | `UNDECIDED`             |
 | Reason for 4-day internal vs 7-working-day sampling target            | `UNKNOWN`               |
 | Complete Production Readiness checklist                               | `UNKNOWN`               |
@@ -990,7 +1002,6 @@ The following decisions must remain unresolved until explicitly approved by the 
 | Additional notification events and recipients                         | `UNDECIDED`             |
 | Delay Report email recipient mapping and dispatch conditions          | `UNDECIDED`             |
 | Customer email source and mandatory requirement                       | `UNDECIDED`             |
-| Customer information snapshot strategy at order creation              | `UNDECIDED`             |
 | Sampling execution responsibility                                     | `UNDECIDED`             |
 | Sample / Look Approval responsibility                                 | `UNDECIDED`             |
 | LoA authorization responsibility                                      | `UNDECIDED`             |

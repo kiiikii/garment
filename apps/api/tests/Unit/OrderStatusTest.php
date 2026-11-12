@@ -25,10 +25,7 @@ class OrderStatusTest extends TestCase
         "COMPLETED",
         "CANCELLED",
       ],
-      array_map(
-        fn(OrderStatus $status) => $status->value,
-        OrderStatus::cases(),
-      ),
+      array_map(fn(OrderStatus $status) => $status->value, $cases),
     );
   }
 }

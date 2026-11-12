@@ -85,7 +85,7 @@ Examples:
 
 - Customer master information belongs to Customer records.
 - Order-specific information belongs to Order records.
-- Customer snapshot strategy at order creation remains UNDECIDED.
+- Each Order owns an immutable snapshot of the required customer name, phone, and origin/address captured at order creation.
 - Sampling activity information belongs to sampling records.
 - Sample / Look Approval decisions belong to approval records.
 - Payment records represent received payments.
@@ -310,6 +310,14 @@ Do not create separate entities merely because they appear in this development o
 - Order size quantities must support multiple sizes and quantities.
 - Do not represent an order using only one size and one quantity.
 - Do not assume all orders share identical size options.
+- Order intake accepts exactly one customer source: an existing `customer_id` or an inline new customer.
+- `name`, `phone`, and `origin_address` are required for an inline customer and must be snapshotted on the Order.
+- Required snapshot attributes: `customer_name_snapshot`, `customer_phone_snapshot`, and `customer_origin_address_snapshot`.
+- Snapshot values are immutable under later Customer master updates.
+- These Order columns are a required schema change and are not present in the current migrations. Add them through a new forward Laravel migration; do not alter or rewrite migration history.
+- The same forward migration must update the `order_sizes.quantity` check from `quantity >= 0` to `quantity >= 1`, matching the newly approved minimum.
+- Snapshot column types should align with their source fields (`VARCHAR(255)`, `VARCHAR(50)`, and `TEXT`). Keep the new columns nullable for legacy compatibility; every new Order must populate all three. Reject order creation when an existing Customer is missing phone or address; do not modify that Customer.
+- Backend-generated `order_number` uses `ORD-{ULID}` and remains protected by a database unique constraint. Retry a generation collision safely under concurrent creation.
 
 Order specification versioning must preserve the distinction between the currently approved specification and previous approved specifications.
 
@@ -325,6 +333,8 @@ Confirmed requirements:
 
 - Quantities are recorded individually by size.
 - Negative quantities are prohibited.
+- Each order has at least one size item; each quantity is an integer of at least 1.
+- `size_id` references must be unique within an order and reference existing Size records.
 - Total quantity equals the sum of recorded size quantities when calculated.
 
 The following remain UNDECIDED:
@@ -332,27 +342,61 @@ The following remain UNDECIDED:
 - Whether total quantity is stored.
 - Whether total quantity is calculated dynamically.
 - Whether both storage and calculation are used.
-- Custom sizes.
 - Multiple distinct product models per order.
-- Zero quantity handling for individual sizes.
+
+Inactive sizes must be rejected for order intake.
+
+Confirmed size classification:
+
+- `S`, `M`, `L`, and `XL` are `STANDARD`.
+- Additional sizes such as `XXL` are `CUSTOM`.
 
 Do not introduce additional quantity constraints without business approval.
 
 ### 5.3 Product Images and References
 
-- Image modeling must be explicitly designed.
+- Images are submitted inline as `images[]` with `multipart/form-data`.
+- Store image objects in Backblaze B2 through its S3-Compatible API.
+- `order_images.file_path` stores the B2 object key, not a public URL.
+- Use a private bucket. Keep access credentials in environment variables.
+- Accept 0–10 JPEG, PNG, or WebP files, maximum 5 MB each.
+- Upload/database failures require compensating deletion of uploaded objects. Durably track failed deletions and retry cleanup until successful; do not silently discard cleanup work.
 - Do not assume an `image_url` column directly on Order.
 - Do not assume a Product, SKU, or Design entity without justification.
 - Do not store binary image data in PostgreSQL without approval.
 - File metadata and physical file storage must have clearly defined responsibilities.
 
-The following remain UNDECIDED:
+#### Approved durable upload-intent/outbox design
 
-- Mandatory image count.
-- Accepted formats.
-- File size constraints.
-- Storage provider.
-- Retention strategy.
+**Status:** Approved design; not part of the current schema until its forward migration is implemented.
+
+Use one durable row per image object and commit it before uploading to B2. Fields:
+
+| Field | Proposed type / constraint | Purpose |
+| ----- | -------------------------- | ------- |
+| `id` | `BIGINT` primary key | Intent identity. |
+| `request_id` | `UUID`, indexed | Groups the image intents for one order-intake request. |
+| `object_key` | `VARCHAR(1024)`, unique, not null | Planned B2 key; copied to `order_images.file_path` upon attachment. |
+| `status` | `VARCHAR(24)` with a check | `PENDING_UPLOAD`, `UPLOADING`, `UPLOADED`, `ATTACHED`, `CLEANUP_PENDING`, `CLEANING`, `CLEANED`, or `NEEDS_ATTENTION`. |
+| `order_id` | Nullable FK to `orders` | Set at attachment; null while the object is unattached. |
+| `lease_owner`, `lease_expires_at` | Nullable worker claim and `TIMESTAMPTZ` | Prevent concurrent upload/cleanup workers; expired leases can be reclaimed. |
+| `cleanup_attempts` | Integer, not null, default `0` | Number of deletion attempts. |
+| `next_retry_at` | Nullable `TIMESTAMPTZ` | When cleanup is next eligible. |
+| `last_error` | Nullable `TEXT` | Sanitized most recent upload or cleanup failure. |
+| `cleanup_started_at` | Nullable `TIMESTAMPTZ` | Starts the 24-hour escalation clock when cleanup first becomes pending. |
+| `escalated_at` | Nullable `TIMESTAMPTZ` | When the retry threshold was escalated. |
+| `uploaded_at`, `attached_at`, `cleaned_at` | Nullable `TIMESTAMPTZ` | Object lifecycle timestamps. |
+| `created_at`, `updated_at` | `TIMESTAMPTZ` | Intent record timestamps. |
+
+After B2 upload, transition the intent to `UPLOADED`. Then persist the Order, order-size rows, order-image metadata, and transition of all matching intent rows to `ATTACHED` in one PostgreSQL transaction. If upload or order persistence fails, preserve the intent and enter cleanup handling; attempt immediate compensation and mark `CLEANED` only after confirming the object is absent/deleted, otherwise use `CLEANUP_PENDING`. Attachment and cleanup use locked or conditional state transitions; cleanup claims only unattached cleanup states. A scheduled worker recovers process crashes, checks B2 after lease expiry, and retries idempotently. Retry at 1m, 5m, 15m, 1h, 6h, then every 24h; escalate after five failures or 24h. ADMIN owns cleanup; OWNER is escalation fallback. Log sanitized failures and retain them in the intent; keep retrying `NEEDS_ATTENTION` rows until cleaned. Verify B2 missing-object behavior during implementation.
+
+Approved lifecycle: `PENDING_UPLOAD → UPLOADING → UPLOADED → ATTACHED`; cleanup uses `CLEANUP_PENDING → CLEANING → CLEANED`, with repeated failures entering `NEEDS_ATTENTION`. Upload intents must be committed before B2 writes. The Order, sizes, image metadata, and `ATTACHED` transitions commit in one PostgreSQL transaction.
+
+Workers claim work with expiring leases and concurrency-safe database claims. Only the current lease owner may complete a transition. Expired leases are reclaimed; recovery checks the persisted object key against B2 because a crash may have occurred after a successful upload/deletion but before the corresponding database update. Repeated delete calls use the same key and must be safe to retry.
+
+Cleanup retries after 1 minute, 5 minutes, 15 minutes, 1 hour, 6 hours, then every 24 hours. Escalate after five failures or 24 hours since cleanup began, whichever comes first. ADMIN owns cleanup and OWNER is escalation fallback. Initial notification is a persistent error record plus application logs. `NEEDS_ATTENTION` remains eligible for daily retries until `CLEANED`. Images are retained for the lifetime of their orders; no automatic deletion. Never expose raw object keys; future retrieval uses authorization and short-lived signed URLs. Credentials remain in environment variables.
+
+Implementation must select lease duration/renewal and scheduler cadence, implement atomic claims, and verify B2 object-existence and delete-missing behavior. These are operational implementation parameters, not unresolved business rules. The table and constraints require a new forward migration; it is not present in the current schema.
 
 ### 5.4 Production Types
 
@@ -690,7 +734,6 @@ The ERD and entity documentation must remain consistent with the actual migratio
 | ----------------------------------------------------- | -------------------------------------------- |
 | Per-size quantity representation                      | Required capability; detailed design pending |
 | Total quantity: stored, calculated, or both           | UNDECIDED                                    |
-| Image modeling and storage                            | UNDECIDED                                    |
 | Database access strategy                              | UNDECIDED                                    |
 | Production Order as separate entity or part of Order  | UNDECIDED                                    |
 | Production type representation                        | UNDECIDED                                    |
@@ -707,7 +750,6 @@ The ERD and entity documentation must remain consistent with the actual migratio
 | Production Issue Report history model                 | UNDECIDED                                    |
 | Order Change Request versioning strategy              | UNDECIDED                                    |
 | Payment correction and duplicate transaction handling | UNDECIDED                                    |
-| Customer information snapshot at order creation       | UNDECIDED                                    |
 
 Do not resolve these decisions by assumption.
 
