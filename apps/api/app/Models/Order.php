@@ -31,4 +31,9 @@ class Order extends Model
   {
     return $this->hasMany(OrderImage::class);
   }
+
+  public function orderUploadIntents(): HasMany
+  {
+    return $this->hasMany(OrderUploadIntent::class);
+  }
 }
