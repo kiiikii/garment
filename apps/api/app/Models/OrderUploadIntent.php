@@ -25,6 +25,22 @@ class OrderUploadIntent extends Model
     ];
   }
 
+  public function transitionTo(OrderUploadIntentStatus $nextStatus): bool
+  {
+    $currentStatus = $this->status;
+
+    if (!($currentStatus instanceof OrderUploadIntentStatus)) {
+      return false;
+    }
+
+    if (!$currentStatus->canTransitionTo($nextStatus)) {
+      return false;
+    }
+
+    $this->status = $nextStatus;
+    return true;
+  }
+
   public function order(): BelongsTo
   {
     return $this->belongsTo(Order::class);

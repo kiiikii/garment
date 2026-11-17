@@ -7,7 +7,6 @@ use App\Enums\OrderUploadIntentStatus;
 use App\Models\Customer;
 use App\Models\OrderUploadIntent;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Foundation\Testing\WithFaker;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
@@ -90,5 +89,30 @@ class OrderUploadIntentPersistenceTest extends TestCase
     );
     $this->assertSame(0, $hydrated->cleanup_attempts);
     $this->assertIsInt($hydrated->cleanup_attempts);
+  }
+
+  public function test_order_uplaod_intent_transition_can_be_persisted(): void
+  {
+    $uploadIntent = OrderUploadIntent::create([
+      "request_id" => Str::uuid()->toString(),
+      "object_key" => "orders/ORD-001/front.png",
+    ]);
+
+    $uploadIntent->refresh();
+    $this->assertSame(
+      OrderUploadIntentStatus::PENDING_UPLOAD,
+      $uploadIntent->status,
+    );
+
+    $result = $uploadIntent->transitionTo(OrderUploadIntentStatus::UPLOADING);
+
+    $this->assertTrue($result);
+    $uploadIntent->save();
+    $freshUploadIntent = OrderUploadIntent::findOrFail($uploadIntent->id);
+
+    $this->assertSame(
+      OrderUploadIntentStatus::UPLOADING,
+      $freshUploadIntent->status,
+    );
   }
 }
